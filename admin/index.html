@@ -379,13 +379,15 @@ RENDER.prehlad = async main => {
     loadBudgetUse()
   ]);
   cache.budget = budget;
-  const nowOpen = open.filter(e => ms(e.start_at) >= today0.getTime());
-  const forgotten = open.filter(e => ms(e.start_at) < today0.getTime());
+  // nočná zmena: zabudnutý je ten, kto je v práci dlhšie ako limit, nie ten, kto prišiel včera
+  const tooLong = e => workedMs(e) > C.max_shift_hours * 36e5;
+  const nowOpen = open.filter(e => !tooLong(e));
+  const forgotten = open.filter(tooLong);
   const todayMs = today.reduce((a, e) => a + workedMs(e), 0);
   const todayCost = today.reduce((a, e) => a + costOf(e), 0);
   const active = W.filter(w => w.active);
   const absentToday = A.filter(a => a.date_from <= dateKey(Date.now()) && a.date_to >= dateKey(Date.now()));
-  const present = new Set(today.map(e => e.worker_id));
+  const present = new Set(today.concat(nowOpen).map(e => e.worker_id));
   const missing = active.filter(w => !present.has(w.id) && !absentToday.some(a => a.worker_id === w.id));
   const editedToday = today.filter(e => e.edited).length;
   const warnP = P.filter(p => p.active && budgetState(p, budget[p.id] || 0)?.cls);
@@ -399,7 +401,7 @@ RENDER.prehlad = async main => {
     <div class="stat"><div class="l">Dnes upravené</div><div class="v num ${editedToday ? "flag" : ""}">${editedToday}</div></div>
   </div>
   ${forgotten.length ? `<div class="card" style="border:2px solid var(--flag)"><h3 class="flag">Zabudnutý odchod</h3>
-    ${forgotten.map(e => `<p style="margin:6px 0">${esc(wName(e.worker_id))} – ${esc(projName(e))}, príchod ${dFull(e.start_at)} ${hm(e.start_at)}, bez odchodu. <button class="btn sm" data-act="entry" data-id="${e.id}">Upraviť</button></p>`).join("")}</div>` : ""}
+    ${forgotten.map(e => `<p style="margin:6px 0">${esc(wName(e.worker_id))} – ${esc(projName(e))}, príchod ${dFull(e.start_at)} ${hm(e.start_at)}, v práci už ${hhmm(workedMs(e))} h bez odchodu. <button class="btn sm" data-act="entry" data-id="${e.id}">Upraviť</button></p>`).join("")}</div>` : ""}
   ${warnP.length ? `<div class="card" style="border:2px solid var(--warn)"><h3 class="warnc">Rozpočet zákazky</h3>
     ${warnP.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u); return `<p style="margin:6px 0"><b>${esc(p.name)}</b>: ${eur(u)} z ${eur(p.budget)} (${Math.round(s.pct)} %)${s.cls === "over" ? ` <span class="tag flag">prekročený</span>` : ""}</p>`; }).join("")}</div>` : ""}
   <h2>Teraz v práci</h2>
@@ -487,7 +489,7 @@ async function openEntry(id) {
     <div class="field"><label for="eWorker">Pracovník</label><select id="eWorker">${W.map(w => `<option value="${w.id}" ${w.id === e.worker_id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
     <div class="field"><label for="eDate">Deň</label><input id="eDate" type="date" value="${dateKey(e.start_at)}" required></div>
     <div class="field"><label for="eStart">Príchod</label><input id="eStart" type="time" value="${timeVal(e.start_at)}" required></div>
-    <div class="field"><label for="eEnd">Odchod</label><input id="eEnd" type="time" value="${e.end_at ? timeVal(e.end_at) : ""}"><span class="hint">Prázdne = ešte v práci</span></div>
+    <div class="field"><label for="eEnd">Odchod</label><input id="eEnd" type="time" value="${e.end_at ? timeVal(e.end_at) : ""}"><span class="hint">Prázdne = ešte v práci. Skorší čas ako príchod = nasledujúci deň.</span></div>
     <div class="field"><label for="eProject">Zákazka</label><select id="eProject">${P.map(p => `<option value="${p.id}" ${p.id === e.project_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}<option value="" ${!e.project_id ? "selected" : ""}>Iné</option></select></div>
     <div class="field"><label for="eOther">Iné – čo / kde</label><input id="eOther" value="${esc(e.other_text)}"></div>
     <div class="field"><label for="eTask">Úloha</label><select id="eTask">${T.map(t => `<option value="${t.num}" ${t.num === e.task_num ? "selected" : ""}>${t.num} · ${esc(t.name)}</option>`).join("")}</select></div>
@@ -508,7 +510,8 @@ async function openEntry(id) {
 async function saveEntry() {
   const f = $("[data-form=entry]"); const id = f.dataset.id, isNew = !!f.dataset.new;
   const d = f.eDate.value; const mk = t => new Date(d + "T" + t + ":00").getTime();
-  const s = mk(f.eStart.value), en = f.eEnd.value ? mk(f.eEnd.value) : null;
+  const s = mk(f.eStart.value); let en = f.eEnd.value ? mk(f.eEnd.value) : null;
+  if (en != null && en <= s) en += 864e5;   // odchod po polnoci (nočná zmena)
   if (en != null && en <= s) return toast("Odchod musí byť po príchode", true);
   const w = worker(f.eWorker.value);
   const row = {worker_id: w.id, company_id: C.id, project_id: f.eProject.value || null, other_text: f.eProject.value ? "" : f.eOther.value.trim(),

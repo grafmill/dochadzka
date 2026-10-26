@@ -470,7 +470,7 @@ function toggleBreak(){
   if(b){ b.end=Date.now(); toast("Pokračuješ v práci"); } else { e.breaks.push({start:Date.now(),end:null}); toast("Prestávka od "+hm(Date.now())); }
   queue(e); render();
 }
-function todayMs(){ return S.entries.filter(e=>isToday(e.start)).reduce((a,e)=>a+worked(e),0); }
+function todayMs(){ return S.entries.filter(e=>isToday(e.start)||e.end===null).reduce((a,e)=>a+worked(e),0); }
 
 /* ======================================================================
    ZOBRAZENIE
@@ -479,7 +479,7 @@ let reminderDismissed=false;
 function render(){
   if(!S.mode||(live()&&S.loggedOut)){ $("#app").innerHTML=loginHtml(); return; }
   const e=openEntry(); const brk=onBreak(e);
-  const today=S.entries.filter(x=>isToday(x.start)).sort((a,b)=>a.start-b.start);
+  const today=S.entries.filter(x=>isToday(x.start)||x.end===null).sort((a,b)=>a.start-b.start);
   const tMs=todayMs(), {h,m}=dur(tMs);
   const weekMs=S.entries.filter(x=>sameWeek(x.start)).reduce((a,x)=>a+worked(x),0);
   let html=`
@@ -558,11 +558,12 @@ function consentHtml(){
 }
 function bannersHtml(e){
   if(!e||reminderDismissed) return "";
-  const n=new Date();
-  if(!isToday(e.start)) return `<div class="banner red"><p><b>Zabudnutý odchod</b><br>Záznam na ${esc(projName(e))} z ${new Date(e.start).toLocaleDateString("sk-SK")} od ${hm(e.start)} nemá odchod. Zadaj, kedy si skončil.</p>
-    <div class="row"><button class="btn primary" data-act="edit" data-id="${e.id}">Zadať čas odchodu</button></div></div>`;
-  const long=worked(e)>S.company.maxShiftHours*36e5, late=n.getHours()>=S.company.forgotCheckoutHour;
-  if(long||late) return `<div class="banner"><p><b>Si ešte v práci?</b><br>Príchod bol o ${hm(e.start)}. Ak si už skončil, daj Odchod alebo uprav čas.</p>
+  // nočná zmena: rozhoduje dĺžka v práci, nie dátum príchodu
+  const n=new Date(), lateAt=new Date(n); lateAt.setHours(S.company.forgotCheckoutHour,0,0,0);
+  if(worked(e)>S.company.maxShiftHours*36e5) return `<div class="banner red"><p><b>Zabudnutý odchod?</b><br>Si v práci od ${isToday(e.start)?"":new Date(e.start).toLocaleDateString("sk-SK")+" "}${hm(e.start)} (${durTxt(worked(e))}). Ak si už skončil, zadaj kedy.</p>
+    <div class="row"><button class="btn primary" data-act="edit" data-id="${e.id}">Zadať čas odchodu</button><button class="btn" data-act="dismiss">Ešte pracujem</button></div></div>`;
+  const late=n>=lateAt&&e.start<lateAt.getTime()&&isToday(e.start);
+  if(late) return `<div class="banner"><p><b>Si ešte v práci?</b><br>Príchod bol o ${hm(e.start)}. Ak si už skončil, daj Odchod alebo uprav čas.</p>
     <div class="row"><button class="btn primary" data-act="checkout">Odchod teraz</button><button class="btn" data-act="edit" data-id="${e.id}">Skončil som skôr</button><button class="btn" data-act="dismiss">Ešte pracujem</button></div></div>`;
   return "";
 }
@@ -640,6 +641,7 @@ function saveEdit(){
   const v1=$("#tStart").value, v2=$("#tEnd").value;
   const base=new Date(e.start); const mkTs=v=>{const [h,m]=v.split(":").map(Number);const d=new Date(base);d.setHours(h,m,0,0);return d.getTime();};
   let ns=v1?mkTs(v1):e.start, ne=v2?mkTs(v2):e.end;
+  if(ne!==null&&v2&&ne<=ns) ne+=864e5;   // odchod po polnoci (nočná zmena)
   if(ne!==null&&ne<=ns){ toast("Odchod musí byť po príchode"); return; }
   if(ne!==null&&ne>Date.now()+60000){ toast("Odchod nemôže byť v budúcnosti"); return; }
   let ch=false;
