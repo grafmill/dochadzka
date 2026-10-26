@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GDPR podklady Dochádzka</title>
+<style>
+/* Layout: jeden stĺpec na čítanie v mobile, farby a písmo rovnaké ako v appke Dochádzka */
+:root{
+  --bg:#ECEEEA; --surface:#FFFFFF; --sunk:#F5F6F3; --ink:#1B1F1D; --muted:#5C635E; --line:#D3D7D1;
+  --accent:#F2B705; --accent-ink:#1B1F1D; --go:#1E7F4F; --stop:#B8322A; --flag:#D12A1F; --info:#2F5D8A;
+  --info-bg:#E4ECF4; --warn-bg:#FBF1D2; --flag-bg:#F8E1DF; --go-bg:#E1F0E7;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121513; --surface:#1C201D; --sunk:#171A18; --ink:#EEF0EC; --muted:#9AA29C; --line:#2E3430;
+  --accent:#F5C02A; --accent-ink:#121513; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --info:#7FB0E0;
+  --info-bg:#1A2633; --warn-bg:#2E2814; --flag-bg:#33191A; --go-bg:#16291F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121513; --surface:#1C201D; --sunk:#171A18; --ink:#EEF0EC; --muted:#9AA29C; --line:#2E3430;
+  --accent:#F5C02A; --accent-ink:#121513; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --info:#7FB0E0;
+  --info-bg:#1A2633; --warn-bg:#2E2814; --flag-bg:#33191A; --go-bg:#16291F; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-direction:column;gap:4px;border-bottom:4px solid var(--accent);padding-bottom:14px}
+.eyebrow{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:14px;color:var(--muted)}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:40px}
+h2{font-size:28px;margin-top:10px;display:flex;gap:10px;align-items:baseline}
+h2 .n{font-size:18px;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:0 8px;min-width:32px;text-align:center}
+h3{font-size:21px}
+p{margin:0}
+.lead{font-size:19px;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:10px;min-width:0}
+ol,ul{margin:0;padding-left:24px;display:flex;flex-direction:column;gap:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.privacy{background:var(--info-bg);border:2px solid var(--info);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.privacy h2{margin-top:0;color:var(--info)}
+.privacy ul{gap:8px}
+.note{background:var(--warn-bg);border-left:5px solid var(--accent);border-radius:8px;padding:12px 14px}
+.danger{background:var(--flag-bg);border-left:5px solid var(--flag);border-radius:8px;padding:12px 14px}
+.ok{background:var(--go-bg);border-left:5px solid var(--go);border-radius:8px;padding:12px 14px}
+.btn{display:inline-block;font-family:var(--display);font-weight:700;font-size:.95em;padding:0 8px;border-radius:6px;border:1px solid var(--line);background:var(--sunk);white-space:nowrap}
+.btn.go{background:var(--go);color:#fff;border-color:var(--go)}
+.btn.stop{background:var(--stop);color:#fff;border-color:var(--stop)}
+.flag{color:var(--flag);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:15px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:10px}
+.steps>li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}
+.steps>li::before{content:counter(s);font-family:var(--display);font-weight:700;font-size:20px;background:var(--ink);color:var(--bg);border-radius:50%;width:32px;height:32px;display:grid;place-items:center}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--display);font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:15px}
+a{color:var(--info)}
+.fill{background:var(--warn-bg);border-bottom:2px dotted var(--accent);padding:0 3px}
+.tag{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;border-radius:5px;padding:1px 7px;white-space:nowrap}
+.tag.p1{background:var(--flag);color:#fff}.tag.p2{background:var(--accent);color:var(--accent-ink)}.tag.p3{background:var(--line);color:var(--ink)}
+footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:14px}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+@media print{body{background:#fff;color:#000}.privacy,.card,.tablewrap{break-inside:avoid}}
+</style></head><body>
+<div class="wrap">
+<header class="top">
+  <span class="eyebrow">Dochádzka · ochrana osobných údajov</span>
+  <h1>GDPR podklady k Dochádzke</h1>
+  <p class="lead">Čo appka naozaj zbiera, návrh informácie pre zamestnancov, povinnosti zamestnávateľa a navrhované úpravy appky.</p>
+</header>
+
+<div class="danger"><b>Toto nie je právne stanovisko.</b> Podklady vychádzajú z kontroly kódu appky (stav k 26. 10. 2026) a zo všeobecných pravidiel GDPR a Zákonníka práce. Finálne znenie, právne základy a lehoty uchovávania má potvrdiť právnik alebo zodpovedná osoba (DPO).</div>
+
+<nav class="toc" aria-label="Obsah">
+  <a href="#overenie">Čo sme overili</a><a href="#udaje">Aké údaje</a><a href="#informacia">Informácia pre zamestnancov</a><a href="#povinnosti">Povinnosti zamestnávateľa</a><a href="#upravy">Navrhované úpravy appky</a>
+</nav>
+
+<section id="overenie">
+  <h2><span class="n">1</span>Čo sme overili v kóde</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Otázka</th><th>Skutočnosť dnes</th></tr></thead>
+    <tbody>
+      <tr><td>Kedy sa ukladá GPS?</td><td>Pri <b>Príchode aj pri Odchode</b> (aj pri presune, ktorý je odchod + príchod). Len ak firma GPS zapla a pracovník súhlasil. Uloží sa zemepisná šírka, dĺžka a presnosť merania.</td></tr>
+      <tr><td>Sleduje appka pohyb?</td><td><b>Nie.</b> Appka nemá nepretržité sledovanie, nebeží na pozadí a po zatvorení polohu nezistí. Pri otvorení si mobil polohu zistí len na výber zákazky; uloží sa až pri Príchode.</td></tr>
+      <tr><td>Okrem mena nič iné?</td><td><b>Nie celkom.</b> Appka z mobilu nič nečíta (kontakty, číslo, galériu ani iné appky), ale posiela to, čo pracovník zadá: časy, zákazku, úlohu, poznámku, prestávky, fotky, bločky a sumy, a polohu pri súhlase. Meno a telefón zapisuje zamestnávateľ.</td></tr>
+      <tr><td>Fotky</td><td>Zmenšia sa a nanovo uložia, čím sa odstránia skryté údaje (EXIF) vrátane GPS miesta odfotenia. Na serveri sú v neverejnom úložisku, zamestnávateľ ich otvára cez dočasný odkaz platný 1 hodinu.</td></tr>
+      <tr><td>Kto vidí údaje?</td><td>Iba prihlásený správca firmy. Pracovník vidí len svoje záznamy (posledných 40 dní v mobile). Pravidlá prístupu sú priamo v databáze (RLS).</td></tr>
+      <tr><td>Technické údaje</td><td>Server (Supabase) a hosting appky (GitHub Pages) vidia IP adresu a typ prehliadača. Písmo sa načítava z Google Fonts, takže Google tiež vidí IP adresu.</td></tr>
+      <tr><td>Ako dlho sa uchováva?</td><td><b>Bez obmedzenia.</b> Appka zatiaľ nič automaticky nemaže. Pri zmazaní záznamu ostanú jeho fotky v úložisku.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">Želanie „GPS iba pri Príchode“ dnes nesedí: ukladá sa aj pri Odchode. Úprava je jednoduchá, je prvá v zozname <a href="#upravy">navrhovaných úprav</a>. Návod pre pracovníka zatiaľ opisuje skutočný stav (Príchod aj Odchod).</div>
+</section>
+
+<section id="udaje">
+  <h2><span class="n">2</span>Aké údaje appka spracúva</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Údaj</th><th>Odkiaľ</th><th>Na čo</th><th>Návrh doby uchovávania</th></tr></thead>
+    <tbody>
+      <tr><td>Meno, telefón, typ (TPP / živnostník), sadzba, poznámka</td><td>zamestnávateľ</td><td>evidencia, mzdy, faktúry, kontakt</td><td>počas spolupráce + lehota podľa mzdových a účtovných predpisov</td></tr>
+      <tr><td>Príchod, odchod, prestávky, pôvodný čas pri oprave</td><td>pracovník</td><td>evidencia pracovného času, výpočet mzdy alebo faktúry</td><td>podľa lehoty pre evidenciu pracovného času a mzdové podklady (určí právnik / účtovník)</td></tr>
+      <tr><td>Zákazka, úloha, poznámka</td><td>pracovník</td><td>kto, kedy a čo robil na ktorej stavbe, náklady zákazky</td><td>ako dochádzka, prípadne do konca záručnej doby stavby</td></tr>
+      <tr><td>GPS pri Príchode (a dnes aj Odchode)</td><td>mobil, len so súhlasom</td><td>automatický výber zákazky, kontrola, že príchod bol na stavbe</td><td>krátko, napr. <b>do uzavretia mesiaca + 3 mesiace</b>; potom ponechať len „na stavbe áno / nie“</td></tr>
+      <tr><td>Fotky k práci</td><td>pracovník</td><td>dokumentácia postupu prác</td><td>napr. 12 mesiacov alebo do odovzdania stavby + reklamačná lehota</td></tr>
+      <tr><td>Hotovosť, bločky, zálohy</td><td>zamestnávateľ a pracovník</td><td>vyúčtovanie, účtovníctvo</td><td>podľa zákona o účtovníctve (účtovné doklady obvykle 10 rokov, overiť s účtovníkom)</td></tr>
+      <tr><td>Neprítomnosť (dovolenka, PN, voľno)</td><td>zamestnávateľ</td><td>evidencia, mzdy</td><td>ako mzdové podklady; pri PN zapisovať len „PN“, nie diagnózu</td></tr>
+      <tr><td>Súhlas s GPS</td><td>pracovník</td><td>preukázanie súhlasu</td><td>po dobu spracúvania polohy + premlčacia lehota</td></tr>
+      <tr><td>Prihlasovací kód, technický identifikátor mobilu</td><td>systém</td><td>prihlásenie</td><td>do odhlásenia alebo deaktivácie</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="informacia">
+  <h2><span class="n">3</span>Návrh: Informácia pre zamestnancov</h2>
+  <p class="muted">Text podľa čl. 13 GDPR. Žlto označené časti doplní zamestnávateľ. Odovzdať každému pracovníkovi pred prvým použitím appky (papierovo alebo e-mailom) a mať ju dostupnú aj neskôr.</p>
+  <div class="card">
+    <h3>Informácia o spracúvaní osobných údajov v aplikácii Dochádzka</h3>
+    <p><b>Prevádzkovateľ:</b> <span class="fill">názov firmy, sídlo, IČO</span>, kontakt: <span class="fill">e-mail, telefón</span>. Zodpovedná osoba: <span class="fill">kontakt, ak je určená</span>.</p>
+    <p><b>Na čo údaje používame:</b> evidencia pracovného času a dochádzky na zákazkách, výpočet mzdy alebo odmeny, vyúčtovanie záloh a hotovosti, prehľad o nákladoch zákaziek a dokumentácia postupu prác.</p>
+    <p><b>Aké údaje:</b> meno, telefón, typ spolupráce, sadzba; čas príchodu a odchodu vrátane opráv, prestávky; zákazka, úloha, poznámka; fotky, ktoré sám odfotíš; bločky a sumy pri hotovosti; neprítomnosť. Ak súhlasíš, aj poloha (GPS) <b>iba v okamihu Príchodu a Odchodu</b>. Appka ťa nesleduje počas dňa ani mimo práce a z mobilu nečíta žiadne ďalšie údaje.</p>
+    <p><b>Právny základ:</b> evidencia pracovného času je zákonná povinnosť zamestnávateľa (§ 99 Zákonníka práce, čl. 6 ods. 1 písm. c) GDPR); u živnostníkov plnenie zmluvy (čl. 6 ods. 1 písm. b)). Fotky a prehľad zákaziek: oprávnený záujem na riadení stavieb (čl. 6 ods. 1 písm. f)). Poloha: <span class="fill">súhlas (čl. 6 ods. 1 písm. a)) alebo oprávnený záujem, určí právnik</span>. Odmietnutie alebo odvolanie súhlasu s polohou nemá pre teba žiadne následky; appka funguje ďalej bez polohy.</p>
+    <p><b>Kto údaje vidí:</b> iba poverené osoby prevádzkovateľa. Sprostredkovatelia: <span class="fill">Supabase Inc. (databáza a úložisko, región: …)</span>, GitHub Inc. (hosting appky), <span class="fill">dodávateľ a správca systému, mzdová účtovníčka</span>. Ak sú údaje mimo EÚ, chránia ich štandardné zmluvné doložky alebo rozhodnutie o primeranosti.</p>
+    <p><b>Ako dlho:</b> <span class="fill">dochádzka … rokov, GPS … mesiacov, fotky … mesiacov, účtovné doklady 10 rokov</span>.</p>
+    <p><b>Tvoje práva:</b> prístup k údajom a ich kópia, oprava, vymazanie, obmedzenie spracúvania, námietka proti spracúvaniu na základe oprávneného záujmu, prenosnosť, odvolanie súhlasu s polohou kedykoľvek (v appke: Nastavenia → Súhlas s polohou). Sťažnosť môžeš podať na Úrad na ochranu osobných údajov SR (dataprotection.gov.sk).</p>
+    <p><b>Automatizované rozhodovanie:</b> nepoužíva sa. Výstraha „mimo stavby“ je len informácia pre zamestnávateľa, nič sa podľa nej nerobí automaticky.</p>
+  </div>
+</section>
+
+<section id="povinnosti">
+  <h2><span class="n">4</span>Čo musí urobiť zamestnávateľ</h2>
+  <ol class="steps">
+    <li><span><b>Informovať pracovníkov</b> textom z časti 3 skôr, než začnú appku používať.</span></li>
+    <li><span><b>Kontrolný mechanizmus pri GPS (§ 13 ods. 4 Zákonníka práce):</b> ak firma zapne polohu, musí to vopred prerokovať so zástupcami zamestnancov (ak sú) a informovať zamestnancov o rozsahu kontroly, spôsobe a dobe trvania. Odporúčame písomne.</span></li>
+    <li><span><b>Zvoliť právny základ pre GPS.</b> Súhlas v pracovnom pomere často nie je považovaný za slobodný. Častejšie sa použije oprávnený záujem s testom proporcionality; súhlas v appke potom ostáva ako dodatočná ochrana. Rozhodne právnik.</span></li>
+    <li><span><b>Zmluvy so sprostredkovateľmi (čl. 28):</b> s dodávateľom systému, ak ho spravuje za firmu, a so Supabase (DPA sa uzatvára v jeho nastaveniach). Skontrolovať, že Supabase projekt beží v <b>EÚ regióne</b>.</span></li>
+    <li><span><b>Záznam o spracovateľských činnostiach</b> (čl. 30): doplniť činnosť „dochádzka a evidencia práce na zákazkách“.</span></li>
+    <li><span><b>Posúdiť, či treba posúdenie vplyvu (DPIA)</b> pre lokalizáciu zamestnancov. Pri polohe len v okamihu príchodu býva riziko nízke, ale rozhodnutie má byť zdokumentované.</span></li>
+    <li><span><b>Určiť lehoty uchovávania</b> (časť 2) a mazať podľa nich.</span></li>
+    <li><span><b>Bezpečnosť:</b> silné heslo do administrácie, neposielať kódy pracovníkov tretím osobám, pri strate mobilu hneď vytvoriť nový kód, deaktivovať odídených pracovníkov.</span></li>
+    <li><span><b>Poznámky o pracovníkoch písať vecne.</b> Pracovník má právo vidieť všetko, čo sa o ňom vedie. Pri PN nezapisovať diagnózu.</span></li>
+    <li><span><b>Pokyn pre fotky:</b> fotiť prácu, nie ľudí, a nefotiť doklady ani súkromný majetok tretích osôb.</span></li>
+  </ol>
+</section>
+
+<section id="upravy">
+  <h2><span class="n">5</span>Navrhované úpravy appky</h2>
+  <p class="muted">Zatiaľ nič z toho nie je urobené. Po odsúhlasení ich spravím a návody upravím podľa nového stavu.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Priorita</th><th>Úprava</th><th>Prečo</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag p1">vysoká</span></td><td><b>GPS iba pri Príchode.</b> Pri Odchode sa poloha neuloží. Pri Príchode sa zmeria čerstvo, nie z času otvorenia appky. Texty v appke a v administrácii sa zosúladia.</td><td>Želanie zadávateľa, menej údajov (minimalizácia).</td></tr>
+      <tr><td><span class="tag p1">vysoká</span></td><td><b>Automatické mazanie GPS súradníc</b> po nastaviteľnej dobe (napr. 90 dní). Ostane len „na stavbe áno / nie“ a vzdialenosť.</td><td>Obmedzenie uchovávania (čl. 5 ods. 1 písm. e)).</td></tr>
+      <tr><td><span class="tag p1">vysoká</span></td><td><b>Mazanie fotiek:</b> pri zmazaní záznamu zmazať aj jeho fotky; automatické mazanie fotiek k práci po nastaviteľnej dobe. Bločky ostanú podľa účtovnej lehoty.</td><td>Dnes fotky ostávajú v úložisku natrvalo.</td></tr>
+      <tr><td><span class="tag p2">stredná</span></td><td><b>Obrazovka „Ochrana údajov“ v appke pracovníka:</b> skrátená informácia pred súhlasom aj v Nastaveniach, s odkazom na plnú informáciu firmy. Zamestnávateľ si vloží svoje údaje v Nastaveniach.</td><td>Informačná povinnosť (čl. 13) priamo v appke.</td></tr>
+      <tr><td><span class="tag p2">stredná</span></td><td><b>Dátum a čas súhlasu</b> a jeho odvolania ukladať (dnes len áno / nie) a ukázať v administrácii.</td><td>Preukázanie súhlasu (čl. 7 ods. 1).</td></tr>
+      <tr><td><span class="tag p2">stredná</span></td><td><b>Písmo priamo v appke</b> namiesto Google Fonts.</td><td>Google nedostane IP adresu pracovníkov.</td></tr>
+      <tr><td><span class="tag p2">stredná</span></td><td><b>Anonymizácia bývalého pracovníka</b> po uplynutí lehoty: meno a telefón sa vymažú, hodiny a náklady zákaziek ostanú.</td><td>Právo na vymazanie a obmedzenie uchovávania bez straty štatistík.</td></tr>
+      <tr><td><span class="tag p3">nízka</span></td><td><b>Export údajov jedného pracovníka</b> (všetky jeho záznamy, GPS, fotky, zálohy) jedným tlačidlom.</td><td>Rýchle vybavenie žiadosti o prístup (čl. 15).</td></tr>
+      <tr><td><span class="tag p3">nízka</span></td><td><b>Označenie v appke pracovníka</b>, keď zamestnávateľ zmenil alebo pridal jeho záznam.</td><td>Transparentnosť: dnes to vidí len zamestnávateľ.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ok">Už dnes appka spĺňa: súhlas s polohou je dobrovoľný a dá sa odvolať, appka bez neho funguje, poloha sa neberie nepretržite, fotky sa čistia od skrytých údajov, úložisko fotiek nie je verejné a každý vidí len to, čo má (pravidlá priamo v databáze).</div>
+</section>
+
+<footer>Dochádzka · GDPR podklady · stav kódu k 26. 10. 2026 · nie je to právne stanovisko</footer>
+</div>
+</body></html>

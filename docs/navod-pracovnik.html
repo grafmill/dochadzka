@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Návod pre pracovníka</title>
+<style>
+/* Layout: jeden stĺpec na čítanie v mobile, farby a písmo rovnaké ako v appke Dochádzka */
+:root{
+  --bg:#ECEEEA; --surface:#FFFFFF; --sunk:#F5F6F3; --ink:#1B1F1D; --muted:#5C635E; --line:#D3D7D1;
+  --accent:#F2B705; --accent-ink:#1B1F1D; --go:#1E7F4F; --stop:#B8322A; --flag:#D12A1F; --info:#2F5D8A;
+  --info-bg:#E4ECF4; --warn-bg:#FBF1D2; --flag-bg:#F8E1DF; --go-bg:#E1F0E7;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121513; --surface:#1C201D; --sunk:#171A18; --ink:#EEF0EC; --muted:#9AA29C; --line:#2E3430;
+  --accent:#F5C02A; --accent-ink:#121513; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --info:#7FB0E0;
+  --info-bg:#1A2633; --warn-bg:#2E2814; --flag-bg:#33191A; --go-bg:#16291F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121513; --surface:#1C201D; --sunk:#171A18; --ink:#EEF0EC; --muted:#9AA29C; --line:#2E3430;
+  --accent:#F5C02A; --accent-ink:#121513; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --info:#7FB0E0;
+  --info-bg:#1A2633; --warn-bg:#2E2814; --flag-bg:#33191A; --go-bg:#16291F; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-direction:column;gap:4px;border-bottom:4px solid var(--accent);padding-bottom:14px}
+.eyebrow{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:14px;color:var(--muted)}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:40px}
+h2{font-size:28px;margin-top:10px;display:flex;gap:10px;align-items:baseline}
+h2 .n{font-size:18px;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:0 8px;min-width:32px;text-align:center}
+h3{font-size:21px}
+p{margin:0}
+.lead{font-size:19px;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:10px;min-width:0}
+ol,ul{margin:0;padding-left:24px;display:flex;flex-direction:column;gap:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.privacy{background:var(--info-bg);border:2px solid var(--info);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.privacy h2{margin-top:0;color:var(--info)}
+.privacy ul{gap:8px}
+.note{background:var(--warn-bg);border-left:5px solid var(--accent);border-radius:8px;padding:12px 14px}
+.danger{background:var(--flag-bg);border-left:5px solid var(--flag);border-radius:8px;padding:12px 14px}
+.ok{background:var(--go-bg);border-left:5px solid var(--go);border-radius:8px;padding:12px 14px}
+.btn{display:inline-block;font-family:var(--display);font-weight:700;font-size:.95em;padding:0 8px;border-radius:6px;border:1px solid var(--line);background:var(--sunk);white-space:nowrap}
+.btn.go{background:var(--go);color:#fff;border-color:var(--go)}
+.btn.stop{background:var(--stop);color:#fff;border-color:var(--stop)}
+.flag{color:var(--flag);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:15px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:10px}
+.steps>li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}
+.steps>li::before{content:counter(s);font-family:var(--display);font-weight:700;font-size:20px;background:var(--ink);color:var(--bg);border-radius:50%;width:32px;height:32px;display:grid;place-items:center}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--display);font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:15px}
+a{color:var(--info)}
+.fill{background:var(--warn-bg);border-bottom:2px dotted var(--accent);padding:0 3px}
+.tag{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;border-radius:5px;padding:1px 7px;white-space:nowrap}
+.tag.p1{background:var(--flag);color:#fff}.tag.p2{background:var(--accent);color:var(--accent-ink)}.tag.p3{background:var(--line);color:var(--ink)}
+footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:14px}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+@media print{body{background:#fff;color:#000}.privacy,.card,.tablewrap{break-inside:avoid}}
+</style></head><body>
+<div class="wrap">
+<header class="top">
+  <span class="eyebrow">Dochádzka · návod pre pracovníka</span>
+  <h1>Ako používať appku Dochádzka</h1>
+  <p class="lead">Ráno ťukneš Príchod, večer Odchod. Všetko ostatné je navyše.</p>
+</header>
+
+<section class="privacy" aria-labelledby="h-udaje">
+  <h2 id="h-udaje">Tvoja poloha a tvoje údaje</h2>
+  <ul>
+    <li><b>Poloha (GPS) sa používa, len ak ju zapol zamestnávateľ a ty si v appke ťukol „Súhlasím“.</b> Bez súhlasu appka funguje úplne rovnako, len bez polohy. Súhlas môžeš kedykoľvek zrušiť v Nastaveniach (ozubené koliesko vpravo hore).</li>
+    <li><b>Poloha sa uloží iba v okamihu, keď ťukneš Príchod alebo Odchod.</b> Pri presune na inú zákazku je to odchod z jednej a príchod na druhú, preto sa uloží aj vtedy.</li>
+    <li><b>Appka ťa nesleduje.</b> Nezbiera polohu počas práce, cez prestávku, cestou ani doma. Keď je appka zatvorená, nebeží a polohu zistiť nevie.</li>
+    <li>Keď appku otvoríš, mobil si zistí polohu len preto, aby ti sám ponúkol správnu zákazku. Nikam sa nepošle, kým neťukneš Príchod.</li>
+    <li><b>Appka posiela len to, čo do nej sám zadáš:</b> čas príchodu a odchodu (pri oprave aj pôvodný čas), zákazku, číslo úlohy, poznámku, prestávky, fotky, ktoré sám odfotíš, a pri hotovosti sumu a bloček. K tomu polohu pri Príchode a Odchode, ak si súhlasil.</li>
+    <li><b>Appka z mobilu nič iné neberie.</b> Nečíta kontakty, správy, galériu, tvoje telefónne číslo ani iné appky. Fotoaparát sa otvorí, len keď ťukneš Fotka. Z fotky sa pri odoslaní odstránia skryté údaje, aj miesto, kde bola odfotená.</li>
+    <li>Tvoje meno (a telefón, ak ho máš uvedený) zapísal do systému zamestnávateľ. Tvoje záznamy vidí iba tvoj zamestnávateľ, kolegovia ich nevidia.</li>
+  </ul>
+  <p class="small muted">Ako každá webová stránka, aj appka pri pripojení odovzdá serveru IP adresu a typ prehliadača. Podrobnosti o tom, kto tvoje údaje spracúva a ako dlho sa uchovávajú, je v dokumente „Informácia o spracúvaní osobných údajov“ od zamestnávateľa.</p>
+</section>
+
+<nav class="toc" aria-label="Obsah">
+  <a href="#instalacia">Inštalácia</a><a href="#prichod">Príchod</a><a href="#presun">Presun</a><a href="#odchod">Odchod</a><a href="#oprava">Oprava času</a><a href="#hotovost">Hotovosť a bločky</a><a href="#signal">Bez signálu</a><a href="#problemy">Keď niečo nejde</a>
+</nav>
+
+<section id="instalacia">
+  <h2>Inštalácia do mobilu</h2>
+  <p>Zamestnávateľ ti pošle SMS alebo WhatsApp s odkazom a kódom (napr. <b>ABCD-1234</b>).</p>
+  <div class="two">
+    <div class="card">
+      <h3>Android</h3>
+      <ol class="steps">
+        <li><span>Otvor odkaz v prehliadači <b>Chrome</b>. Appka sa sama prihlási.</span></li>
+        <li><span>Ťukni na menu <b>⋮</b> vpravo hore.</span></li>
+        <li><span>Vyber <b>Pridať na plochu</b> (na Samsungu <b>Inštalácia a vytvorenie odkazu</b>) a potom <b>Inštalovať</b>.</span></li>
+        <li><span>Odteraz appku spúšťaš ikonou <b>Dochádzka</b> na ploche.</span></li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>iPhone</h3>
+      <ol class="steps">
+        <li><span>Otvor odkaz v prehliadači <b>Safari</b>.</span></li>
+        <li><span>Ťukni na tlačidlo <b>Zdieľať</b> (štvorček so šípkou hore).</span></li>
+        <li><span>Vyber <b>Pridať na plochu</b> a potvrď <b>Pridať</b>.</span></li>
+        <li><span>Otvor appku z plochy a <b>zadaj kód</b> zo správy. Stačí raz.</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section id="prichod">
+  <h2>Príchod do práce</h2>
+  <ol class="steps">
+    <li><span>Otvor appku. Hore vidíš <b>zákazku</b>. Ak máš zapnutú polohu, appka ju vyberie sama podľa toho, kde stojíš. Inak ponúkne tú, na ktorej si bol naposledy.</span></li>
+    <li><span>Ak zákazka nesedí, ťukni <b>Zmeniť</b> a vyber správnu. Keď robíš inde (sklad, nákup), napíš to do políčka <b>Iné</b>.</span></li>
+    <li><span>Skontroluj <b>úlohu</b>. Ťukni Zmeniť a napíš jej číslo (napr. 5 = búranie), alebo ťukni na jednu z posledných úloh pod ňou.</span></li>
+    <li><span>Ak chceš, pridaj <b>Poznámku</b> (napr. „montáž SDK v 2. NP“) alebo <b>Fotku</b>. Nie je to povinné.</span></li>
+    <li><span>Ťukni na zelené tlačidlo <span class="btn go">Príchod</span>. Hotovo, čas beží.</span></li>
+  </ol>
+  <p class="muted small">Poznámku a fotku môžeš pridať aj neskôr počas dňa. Hore vidíš, koľko máš dnes a tento týždeň odpracované.</p>
+</section>
+
+<section id="presun">
+  <h2>Presun na inú zákazku alebo úlohu</h2>
+  <ol class="steps">
+    <li><span>Ťukni <b>Presun na inú zákazku / úlohu</b>.</span></li>
+    <li><span>Vyber novú zákazku a úlohu.</span></li>
+    <li><span>Ťukni <span class="btn go">Príchod sem</span>. Predošlá práca sa ukončí sama, nič iné netreba.</span></li>
+  </ol>
+  <p class="muted small">Ak si to rozmyslíš, ťukni „Späť, ostávam na …“.</p>
+</section>
+
+<section id="odchod">
+  <h2>Odchod z práce</h2>
+  <p>Na konci dňa ťukni na červené tlačidlo <span class="btn stop">Odchod</span>. Appka ukáže, koľko si dnes spolu odpracoval.</p>
+  <p>Ak zamestnávateľ zapol prestávky, uvidíš aj tlačidlo <b>Prestávka</b>. Ťukni ho na začiatku a na konci obeda. Čas prestávky sa neráta do odpracovaných hodín.</p>
+  <div class="note">Zabudol si dať Odchod? Appka ti večer alebo po dlhej zmene ukáže pripomienku. Ťukni <b>Odchod teraz</b>, alebo <b>Skončil som skôr</b> a zadaj, kedy si naozaj odišiel.</div>
+</section>
+
+<section id="oprava">
+  <h2>Oprava času</h2>
+  <ol class="steps">
+    <li><span>Dole v časti <b>Dnešné záznamy</b> ťukni na záznam.</span></li>
+    <li><span>Prepíš čas príchodu alebo odchodu a ťukni <b>Uložiť</b>.</span></li>
+  </ol>
+  <p>Nič nemusíš zdôvodňovať. Zamestnávateľ však opravený záznam uvidí označený <span class="flag">červeným výkričníkom !</span> spolu s pôvodným časom.</p>
+</section>
+
+<section id="hotovost">
+  <h2>Hotovosť a bločky</h2>
+  <ul>
+    <li><b>Dostal si peniaze na nákup?</b> V appke uvidíš kartu „Máš u seba … € na nákup“. Po nákupe ťukni <b>Vyúčtovať – odfotiť bloček</b>, zadaj, koľko si minul, odfoť bloček a ťukni Odoslať.</li>
+    <li><b>Kúpil si niečo pre firmu za svoje?</b> Ťukni dole <b>+ Nákup za vlastné peniaze</b>, zadaj sumu, na čo to bolo, a odfoť bloček. Po kontrole ti to zamestnávateľ pripočíta k výplate.</li>
+    <li>Ak zamestnávateľ doklad vráti, uvidíš v karte prečo. Oprav ho a pošli znova.</li>
+  </ul>
+</section>
+
+<section id="signal">
+  <h2>Bez signálu</h2>
+  <p>Appka funguje aj bez internetu. Príchody a odchody si uloží v mobile a pošle ich sama, keď sa signál vráti. Hore vidíš stav: <b>Odoslané</b>, alebo <b>Čaká 2</b> (dva záznamy čakajú na signál).</p>
+  <div class="note">Kým nie je všetko odoslané, appku z mobilu nemaž a neodhlasuj sa.</div>
+</section>
+
+<section id="problemy">
+  <h2>Keď niečo nejde</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Problém</th><th>Čo urobiť</th></tr></thead>
+    <tbody>
+      <tr><td>Appka chce kód</td><td>Zadaj kód zo správy od zamestnávateľa. Na iPhone sa to po pridaní na plochu pýta raz.</td></tr>
+      <tr><td>„Kód nesedí“</td><td>Skontroluj písmená a čísla. Ak to nepomôže, vypýtaj si nový kód.</td></tr>
+      <tr><td>Nový alebo stratený mobil</td><td>Povedz zamestnávateľovi. Vytvorí ti nový kód a starý mobil sa odhlási.</td></tr>
+      <tr><td>Appka vybrala zlú zákazku</td><td>Ťukni Zmeniť pri zákazke a vyber správnu. Stačí jedno ťuknutie.</td></tr>
+      <tr><td>Nechcem zdieľať polohu</td><td>Nastavenia (ozubené koliesko) → vypni „Súhlas s polohou“. Appka funguje ďalej.</td></tr>
+      <tr><td>Hore svieti „Čaká“</td><td>Záznamy čakajú na signál. Pošlú sa samy, keď budeš mať internet.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>Dochádzka · návod pre pracovníka · október 2026</footer>
+</div>
+</body></html>
