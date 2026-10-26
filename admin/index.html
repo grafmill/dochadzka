@@ -109,6 +109,7 @@ tr.edited td:first-child{box-shadow:inset 4px 0 0 var(--flag)}
 tr.sub td{background:var(--sunk);font-size:14px}
 tfoot td{font-weight:700;background:var(--sunk)}
 .orig{color:var(--flag);font-size:12px;display:block}
+.rnd{color:var(--muted);font-size:12px;display:block}
 .excl{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--flag);color:#fff;font-weight:700;font-size:13px;margin-right:4px;vertical-align:-3px}
 
 /* živý prehľad */
@@ -232,7 +233,13 @@ details.card summary{font-weight:600;cursor:pointer}
   .tablewrap td.empty{justify-content:center}
   tr.edited td:first-child{box-shadow:none} tr.edited{border-left:4px solid var(--flag)!important}
 }
+.qrroot{display:none}
+.qrlabel{display:inline-flex;flex-direction:column;align-items:center;gap:4px;width:62mm;margin:3mm;padding:4mm;border:1px dashed #999;break-inside:avoid;text-align:center;color:#000;vertical-align:top}
+.qrlabel svg{width:44mm;height:44mm}
+.qrlabel b{font-size:14px} .qrlabel span{font:600 16px monospace;letter-spacing:.05em} .qrlabel small{font-size:9px;color:#555}
 @media print{
+  body.qrprint>*:not(#qrRoot){display:none!important}
+  body.qrprint .qrroot{display:block}
   nav,.tabbar,.noprint,.btn,.bar{display:none!important}
   .shell{display:block} main{padding:0}
   .print-only{display:block}
@@ -244,6 +251,7 @@ details.card summary{font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
+<div id="qrRoot" class="qrroot"></div>
 <div id="auth" class="auth" hidden></div>
 <div id="shell" class="shell" hidden>
   <nav id="nav"></nav>
@@ -322,8 +330,17 @@ function privOf(c) {
 const privMissing = () => C && "gps_keep_days" in C ? PRIV_REQ.filter(([k]) => !String(privOf(C)[k] || "").trim()).map(x => x[1]) : [];
 const privText = c => { const p = privOf(c); return p.legacy || [p.name || c.name, p.address, p.ico && "IČO " + p.ico, p.contact, p.dpo && "zodpovedná osoba: " + p.dpo].filter(Boolean).join(", "); };
 
+// 0005: zaokrúhľovanie (len prvý príchod a posledný odchod – nie presun medzi zákazkami) a práca v sídle firmy
+const V5 = () => !!C && "round_step" in C;
+const office = () => V5() && C.work_mode === "office";
+const roundTs = (t, dir) => { const st = C.round_step * 6e4; return dir === 0 ? Math.round(t / st) * st : dir > 0 ? Math.ceil(t / st) * st : Math.floor(t / st) * st; };
+const effStart = e => !C.round_step || e.cont_in ? ms(e.start_at) : roundTs(ms(e.start_at), C.round_mode === "nearest" ? 0 : C.round_mode === "company" ? 1 : -1);
+const effEnd = e => e.end_at == null || !C.round_step || e.cont_out ? ms(e.end_at) : roundTs(ms(e.end_at), C.round_mode === "nearest" ? 0 : C.round_mode === "company" ? -1 : 1);
+const rounded = e => C.round_step && (effStart(e) !== ms(e.start_at) || (e.end_at && effEnd(e) !== ms(e.end_at)));
+const roundTxt = e => rounded(e) ? `započítané ${hm(effStart(e))}–${e.end_at ? hm(effEnd(e)) : "…"}` : "";
+
 function workedMs(e, now = Date.now()) {
-  const end = ms(e.end_at) ?? now; let t = end - ms(e.start_at);
+  const end = effEnd(e) ?? now; let t = end - effStart(e);
   (e.breaks || []).forEach(b => { t -= ((b.end ?? now) - b.start); });
   return Math.max(0, t);
 }
@@ -437,13 +454,13 @@ function gpsTag(e) {
   const g = e.gps_start; if (!g) return "";
   // súradnice po lehote zmazané – ostal len výsledok kontroly
   if (g.lat == null) return g.on_site === true ? `<span class="tag go" title="Príchod na mieste zákazky (súradnice zmazané po lehote)">GPS ✓</span>`
-    : g.on_site === false ? `<span class="tag warn" title="Súradnice zmazané po lehote">GPS ${fmtDist(g.dist)} od stavby</span>` : `<span class="tag" title="Súradnice zmazané po lehote">GPS</span>`;
+    : g.on_site === false ? `<span class="tag warn" title="Súradnice zmazané po lehote">GPS ${fmtDist(g.dist)} od miesta</span>` : `<span class="tag" title="Súradnice zmazané po lehote">GPS</span>`;
   const p = project(e.project_id);
   const link = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=17/${g.lat}/${g.lng}`;
   if (p && p.lat != null) {
     const d = distM(g, p), rad = p.radius || C.default_radius;
     return d <= rad ? `<a class="tag go" href="${link}" target="_blank" rel="noopener" title="Príchod na mieste zákazky">GPS ✓</a>`
-                    : `<a class="tag warn" href="${link}" target="_blank" rel="noopener" title="Príchod mimo okruhu zákazky">GPS ${fmtDist(d)} od stavby</a>`;
+                    : `<a class="tag warn" href="${link}" target="_blank" rel="noopener" title="Príchod mimo okruhu zákazky">GPS ${fmtDist(d)} od miesta</a>`;
   }
   return `<a class="tag" href="${link}" target="_blank" rel="noopener">GPS</a>`;
 }
@@ -569,11 +586,11 @@ let liveMap = null, liveTimer = null, live = {open: [], today: []};
 const gpsState = e => {
   if (!C.gps_enabled) return null;
   if (!e.gps_start) return {t: "bez GPS", c: "muted"};
-  if (e.gps_start.lat == null) return e.gps_start.on_site === false ? {t: fmtDist(e.gps_start.dist) + " od stavby", c: "warnc", off: e.gps_start.dist} : {t: e.gps_start.on_site ? "na stavbe" : "GPS", c: e.gps_start.on_site ? "pos" : "muted"};
+  if (e.gps_start.lat == null) return e.gps_start.on_site === false ? {t: fmtDist(e.gps_start.dist) + " od miesta", c: "warnc", off: e.gps_start.dist} : {t: e.gps_start.on_site ? "na mieste" : "GPS", c: e.gps_start.on_site ? "pos" : "muted"};
   const p = project(e.project_id);
   if (!p || p.lat == null) return {t: "GPS", c: "muted"};
   const d = distM(e.gps_start, p);
-  return d <= (p.radius || C.default_radius) ? {t: "na stavbe", c: "pos"} : {t: fmtDist(d) + " od stavby", c: "warnc", off: d};
+  return d <= (p.radius || C.default_radius) ? {t: "na mieste", c: "pos"} : {t: fmtDist(d) + " od miesta", c: "warnc", off: d};
 };
 const groupKey = e => e.project_id || "ine:" + (e.other_text || "").trim().toLowerCase();
 RENDER.prehlad = async main => {
@@ -602,7 +619,7 @@ RENDER.prehlad = async main => {
 
   const alerts = [
     ...forgotten.map(e => `<li><b>${esc(wName(e.worker_id))}</b> nemá odchod – v práci ${hhmm(workedMs(e))} h od ${dShort(e.start_at)} ${hm(e.start_at)}. <button class="lnk" data-act="entry" data-id="${e.id}">Opraviť</button></li>`),
-    ...offSite.map(e => `<li><b>${esc(wName(e.worker_id))}</b> je mimo okruhu stavby (${gpsState(e).t.replace(" od stavby", "")} od ${esc(projName(e))}).</li>`),
+    ...offSite.map(e => `<li><b>${esc(wName(e.worker_id))}</b> je mimo okruhu zákazky (${gpsState(e).t.replace(" od miesta", "")} od ${esc(projName(e))}).</li>`),
     ...warnP.map(p => { const st = budgetState(p, budget[p.id] || 0); return `<li><b>Rozpočet</b> ${esc(p.name)}: ${Math.round(st.pct)} % ${st.cls === "over" ? "– prekročený" : "minuté"}.</li>`; }),
     ...(editedToday.length ? [`<li><b>${editedToday.length}×</b> dnes upravený čas v mobile. <a href="#dochadzka" data-act="flt-edited">Pozrieť</a></li>`] : []),
     ...(lateCash.length ? [`<li><b>Doklad chýba</b> dlhšie ako ${C.cash_overdue_days} dni: ${[...new Set(lateCash.map(c => wName(c.worker_id)))].map(esc).join(", ")}. <a href="#pokladna">Pokladňa</a></li>`] : []),
@@ -653,7 +670,7 @@ RENDER.prehlad = async main => {
       ${leftToday.map(w => { const l = today.filter(e => e.worker_id === w.id); return `<button class="person" style="padding:8px 0" data-act="wsheet" data-id="${w.id}"><span class="mid">${esc(w.name)}${moneyBadge(w.id)}</span><span class="muted small">odišiel ${hm(l[l.length - 1].end_at)} · ${hhmm(l.reduce((a, e) => a + workedMs(e), 0))} h</span></button>`; }).join("")}
       ${missing.length + absentToday.length + leftToday.length ? "" : `<span class="muted">Všetci sú v práci.</span>`}
     </div></details>
-  ${P.some(p => p.active && p.lat != null) || nowOpen.some(e => e.gps_start?.lat != null) ? `<details class="card" id="dMap"><summary>Mapa</summary><div id="liveMap" class="map" style="margin-top:10px"></div></details>` : ""}`;
+  ${!office() && (P.some(p => p.active && p.lat != null) || nowOpen.some(e => e.gps_start?.lat != null)) ? `<details class="card" id="dMap"><summary>Mapa</summary><div id="liveMap" class="map" style="margin-top:10px"></div></details>` : ""}`;
   wasOpen.forEach(id => { const d = document.getElementById(id); if (d) d.open = true; });
 
   const box = $("#dMap");
@@ -748,7 +765,7 @@ function entryRow(e) {
   return `<tr class="click ${e.edited ? "edited" : ""}" data-act="entry" data-id="${e.id}">
     <td class="num">${dShort(e.start_at)}</td>
     <td>${esc(wName(e.worker_id))}</td>
-    <td class="num" style="white-space:nowrap">${e.edited ? `<span class="excl" title="Upravené pracovníkom">!</span>` : ""}${hm(e.start_at)}–${e.end_at ? hm(e.end_at) : `<b style="color:var(--go)">v práci</b>`}${orig}${e.by_admin ? `<span class="small muted" style="display:block">zmena od správcu</span>` : ""}</td>
+    <td class="num" style="white-space:nowrap">${e.edited ? `<span class="excl" title="Upravené pracovníkom">!</span>` : ""}${hm(e.start_at)}–${e.end_at ? hm(e.end_at) : `<b style="color:var(--go)">v práci</b>`}${orig}${rounded(e) ? `<span class="rnd">${roundTxt(e)}</span>` : ""}${e.by_admin ? `<span class="small muted" style="display:block">zmena od správcu</span>` : ""}</td>
     <td>${esc(projName(e))}</td>
     <td>${e.task_num} · ${esc(taskName(e.task_num))}${e.note ? `<br><span class="muted small">${esc(e.note)}</span>` : ""}</td>
     <td class="r num">${hhmm(workedMs(e))}</td>
@@ -768,6 +785,7 @@ async function openEntry(id) {
     <div class="field"><label for="eDate">Deň</label><input id="eDate" type="date" value="${dateKey(e.start_at)}" required></div>
     <div class="field"><label for="eStart">Príchod</label><input id="eStart" type="time" value="${timeVal(e.start_at)}" required></div>
     <div class="field"><label for="eEnd">Odchod</label><input id="eEnd" type="time" value="${e.end_at ? timeVal(e.end_at) : ""}"><span class="hint">Prázdne = ešte v práci. Skorší čas ako príchod = nasledujúci deň.</span></div>
+    ${rounded(e) ? `<div class="full small muted">Zaokrúhlené podľa nastavení: ${roundTxt(e)} (skutočný čas ostáva uložený)</div>` : ""}
     <div class="field"><label for="eProject">Zákazka</label><select id="eProject">${P.map(p => `<option value="${p.id}" ${p.id === e.project_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}<option value="" ${!e.project_id ? "selected" : ""}>Iné</option></select></div>
     <div class="field"><label for="eOther">Iné – čo / kde</label><input id="eOther" value="${esc(e.other_text)}"></div>
     <div class="field"><label for="eTask">Úloha</label><select id="eTask">${T.map(t => `<option value="${t.num}" ${t.num === e.task_num ? "selected" : ""}>${t.num} · ${esc(t.name)}</option>`).join("")}</select></div>
@@ -882,9 +900,10 @@ async function exportXlsx() {
     s2.push([p ? p.name : "Iné", "SPOLU", hoursDec(s.ms), Math.round(s.cost * 100) / 100, p?.budget ?? "", p?.budget ? Math.round((cache.budget[k] || 0) * 100) / 100 : ""]);
     perW.forEach((o, wid) => s2.push([p ? p.name : "Iné", wName(wid), hoursDec(o.ms), Math.round(o.cost * 100) / 100, "", ""]));
   });
-  const s3 = [["Dátum", "Pracovník", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Hodiny", "Sadzba €/h", "Cena €", "Upravené", "Pôvodný príchod", "Pôvodný odchod"],
+  const s3 = [["Dátum", "Pracovník", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Hodiny", "Sadzba €/h", "Cena €", "Upravené", "Pôvodný príchod", "Pôvodný odchod", ...(C.round_step ? ["Započítaný príchod", "Započítaný odchod"] : [])],
     ...all.map(e => [dFull(e.start_at), wName(e.worker_id), hm(e.start_at), e.end_at ? hm(e.end_at) : "v práci", projName(e), e.task_num, taskName(e.task_num), e.note,
-      hoursDec(workedMs(e)), rateFor(e), Math.round(costOf(e) * 100) / 100, e.edited ? "ÁNO" : "", e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : ""])];
+      hoursDec(workedMs(e)), rateFor(e), Math.round(costOf(e) * 100) / 100, e.edited ? "ÁNO" : "", e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : "",
+      ...(C.round_step ? [hm(effStart(e)), e.end_at ? hm(effEnd(e)) : ""] : [])])];
   [[s1, "Pracovníci"], [s2, "Zákazky"], [s3, "Záznamy"], [s4, "Zálohy"]].forEach(([d, n]) => { const ws = XLSX.utils.aoa_to_sheet(d); ws["!cols"] = d[0].map(() => ({wch: 16})); XLSX.utils.book_append_sheet(wb, ws, n); });
   XLSX.writeFile(wb, `dochadzka-${flt.month}.xlsx`);
 }
@@ -892,16 +911,16 @@ async function exportXlsx() {
 // všetky údaje jedného pracovníka (žiadosť o prístup, čl. 15 GDPR)
 async function exportWorker(id) {
   const w = worker(id), all = await fetchAll(() => sb.from("entries").select("*").eq("worker_id", id).order("start_at"));
-  const gps = g => !g ? "" : g.lat != null ? `${g.lat}, ${g.lng} (±${g.acc ?? "?"} m)` : g.on_site === true ? "na stavbe (súradnice zmazané)" : g.on_site === false ? `${g.dist} m od stavby (súradnice zmazané)` : "súradnice zmazané";
+  const gps = g => !g ? "" : g.lat != null ? `${g.lat}, ${g.lng} (±${g.acc ?? "?"} m)` : g.on_site === true ? "na mieste zákazky (súradnice zmazané)" : g.on_site === false ? `${g.dist} m od miesta zákazky (súradnice zmazané)` : "súradnice zmazané";
   const sheets = [
     ["Údaje", [["Meno", w.name], ["Telefón", w.phone || ""], ["Typ", w.type === "TPP" ? "TPP" : "živnostník"], ["Hodinová sadzba €", w.hourly_rate ?? `${C.default_rate} (základná firmy)`],
       ["Poznámka", w.note || ""], ["Aktívny", w.active ? "áno" : "nie"], ["Prihlásený v mobile", w.user_id ? "áno" : "nie"],
       ["Súhlas s polohou", w.gps_consent === true ? "áno" : w.gps_consent === false ? "nie" : "neodpovedal"], ["Čas súhlasu / odvolania", w.gps_consent_at ? dFull(w.gps_consent_at) + " " + hm(w.gps_consent_at) : ""],
       ["Zaevidovaný", dFull(w.created_at)], ["Prevádzkovateľ", privText(C)], ["Export vytvorený", dFull(Date.now()) + " " + hm(Date.now())]]],
-    ["Záznamy", [["Dátum", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Prestávky", "Hodiny", "Upravené pracovníkom", "Pôvodný príchod", "Pôvodný odchod", "Zmenil zamestnávateľ", "GPS pri príchode", "GPS pri odchode", "Fotky (počet)"],
+    ["Záznamy", [["Dátum", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Prestávky", "Hodiny", "Upravené pracovníkom", "Pôvodný príchod", "Pôvodný odchod", "Zmenil zamestnávateľ", "GPS pri príchode", "GPS pri odchode", "Fotky (počet)", "Započítaný príchod", "Započítaný odchod"],
       ...all.map(e => [dFull(e.start_at), hm(e.start_at), e.end_at ? hm(e.end_at) : "v práci", projName(e), e.task_num, taskName(e.task_num), e.note,
         (e.breaks || []).map(b => hm(b.start) + "–" + (b.end ? hm(b.end) : "…")).join(", "), hoursDec(workedMs(e)), e.edited ? "áno" : "",
-        e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : "", e.by_admin ? "áno" : "", gps(e.gps_start), gps(e.gps_end), (e.photos || []).length || ""])]],
+        e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : "", e.by_admin ? "áno" : "", gps(e.gps_start), gps(e.gps_end), (e.photos || []).length || "", rounded(e) ? hm(effStart(e)) : "", rounded(e) && e.end_at ? hm(effEnd(e)) : ""])]],
     ["Zálohy", [["Dátum", "Suma €", "Poznámka"], ...ADV.filter(a => a.worker_id === id).map(a => [dFull(a.paid_on), +a.amount, a.note || ""])]],
     ["Hotovosť", [["Dátum", "Druh", "Na čo", "Dané €", "Minuté €", "Stav", "Poznámka pracovníka", "Poznámka zamestnávateľa", "Bločky (počet)"],
       ...CASH.filter(c => c.worker_id === id).map(c => [dFull(c.issued_at), c.kind === "own" ? "nákup za vlastné" : "hotovosť na nákup", c.purpose, +c.given, c.spent ?? "", cashStatusTxt(c), c.worker_note || "", c.admin_note || "", (c.photos || []).length || ""])]],
@@ -1021,28 +1040,44 @@ function openInvite(id) {
    ===================================================================== */
 RENDER.zakazky = async main => {
   const budget = cache.budget = await loadBudgetUse();
-  main.innerHTML = `<div class="head"><h1>Zákazky</h1><button class="btn accent" data-act="project-new">+ Nová zákazka</button></div>
-  <div class="tablewrap"><table><thead><tr><th>Zákazka</th><th>Poloha</th><th>Rozpočet</th><th></th></tr></thead>
+  main.innerHTML = `<div class="head"><h1>Zákazky</h1><div class="bar">${V5() && P.some(p => p.active) ? `<button class="btn" data-act="qr-print">Tlačiť QR kódy</button>` : ""}<button class="btn accent" data-act="project-new">+ Nová zákazka</button></div></div>
+  <div class="tablewrap"><table><thead><tr><th>Zákazka</th><th>${office() ? "Kód" : "Poloha"}</th><th>Rozpočet</th><th></th></tr></thead>
   <tbody>${P.length ? P.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u);
     return `<tr class="click" data-act="pdetail" data-id="${p.id}" style="${p.active ? "" : "opacity:.55"}">
-    <td><b>${esc(p.name)}</b>${p.active ? "" : ` <span class="tag">ukončená</span>`}<br><span class="small muted">${esc(p.address || "")}</span></td>
-    <td>${p.lat != null ? `<span class="tag go">na mape · ${p.radius || C.default_radius} m</span>` : `<span class="tag warn">bez polohy</span>`}</td>
+    <td><b>${esc(p.name)}</b>${p.active ? "" : ` <span class="tag">ukončená</span>`}<br><span class="small muted">${esc(p.address || "")}${p.code && !office() ? ` · kód ${esc(p.code)}` : ""}</span></td>
+    <td>${office() ? (p.code ? `<span class="tag">${esc(p.code)}</span>` : `<span class="muted small">–</span>`) : p.lat != null ? `<span class="tag go">na mape · ${p.radius || C.default_radius} m</span>` : `<span class="tag warn">bez polohy</span>`}</td>
     <td style="min-width:200px">${s ? `<div class="meter ${s.cls}"><i style="width:${Math.min(100, s.pct)}%"></i></div><span class="small ${s.cls === "over" ? "flag" : s.cls ? "warnc" : "muted"}">${eur(u)} z ${eur(p.budget)} · ${Math.round(s.pct)} %</span>` : `<span class="muted">–</span>`}</td>
     <td class="r"><button class="btn sm" data-act="project" data-id="${p.id}">Upraviť</button></td></tr>`; }).join("")
     : `<tr><td colspan="4" class="empty">Zatiaľ žiadne zákazky.</td></tr>`}</tbody></table></div>`;
 };
 let pMap = null, pMarker = null, pCircle = null;
+// QR štítky: obsah = kód zákazky (alebo DOCH:id, keď kód nemá) – appka pracovníka ho prečíta fotoaparátom
+async function printQr(id) {
+  if (!window.qrcode) await new Promise((ok, err) => { const s = document.createElement("script"); s.src = "../vendor/qrcode-generator-1.4.4.js"; s.onload = ok; s.onerror = err; document.head.appendChild(s); });
+  const list = id ? [project(id)] : P.filter(p => p.active);
+  const svg = t => { const qr = qrcode(0, "M"); qr.addData(t); qr.make(); return qr.createSvgTag({cellSize: 5, margin: 2, scalable: true}); };
+  const root = $("#qrRoot");
+  root.innerHTML = list.map(p => `<div class="qrlabel">${svg(p.code || "DOCH:" + p.id)}<b>${esc(p.name)}</b>${p.code ? `<span>${esc(p.code)}</span>` : ""}<small>${esc(C.name)} · naskenuj v appke Dochádzka</small></div>`).join("");
+  document.body.classList.add("qrprint");
+  const done = () => { document.body.classList.remove("qrprint"); root.innerHTML = ""; window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  setTimeout(() => window.print(), 50);
+}
 function openProject(id) {
-  const p = project(id) || {name: "", address: "", lat: null, lng: null, radius: null, budget: null, active: true, note: ""};
+  const p = project(id) || {name: "", code: "", address: "", lat: null, lng: null, radius: null, budget: null, active: true, note: ""};
+  const off = office();
   modal(id ? p.name : "Nová zákazka", `<form class="form" data-form="project" data-id="${id || ""}">
-    <div class="field full"><label for="pName">Názov</label><input id="pName" required value="${esc(p.name)}" placeholder="napr. Bytový dom Tomášikova"></div>
-    <div class="field full"><label for="pAddr">Adresa</label><div class="bar"><input id="pAddr" value="${esc(p.address)}" style="flex:1"><button type="button" class="btn" data-act="geo">Nájsť na mape</button></div><span class="hint">Alebo klikni do mapy na miesto stavby.</span></div>
+    <div class="field full"><label for="pName">Názov</label><input id="pName" required value="${esc(p.name)}" placeholder="napr. Rekonštrukcia Hlavná 12"></div>
+    ${V5() ? `<div class="field"><label for="pCode">Kód</label><input id="pCode" value="${esc(p.code || "")}" maxlength="40" placeholder="napr. Z-105" autocapitalize="characters"><span class="hint">Pre QR / čiarový kód. Pracovník ho naskenuje a appka zákazku prepne sama.</span></div>` : ""}
+    ${off ? `<div class="field full"><label for="pAddr">Adresa / miesto</label><input id="pAddr" value="${esc(p.address)}"></div>
+    <input type="hidden" id="pLat" value="${p.lat ?? ""}"><input type="hidden" id="pLng" value="${p.lng ?? ""}">` : `<div class="field full"><label for="pAddr">Adresa</label><div class="bar"><input id="pAddr" value="${esc(p.address)}" style="flex:1"><button type="button" class="btn" data-act="geo">Nájsť na mape</button></div><span class="hint">Alebo klikni do mapy na miesto zákazky.</span></div>
     <div class="full"><div id="pMap" class="map" style="height:300px"></div><input type="hidden" id="pLat" value="${p.lat ?? ""}"><input type="hidden" id="pLng" value="${p.lng ?? ""}"></div>
-    <div class="field"><label for="pRadius">Okruh (m)</label><input id="pRadius" type="number" min="50" max="5000" step="50" value="${p.radius ?? ""}" placeholder="${C.default_radius}"><span class="hint">V tomto okruhu appka zákazku vyberie sama</span></div>
+    <div class="field"><label for="pRadius">Okruh (m)</label><input id="pRadius" type="number" min="50" max="5000" step="50" value="${p.radius ?? ""}" placeholder="${C.default_radius}"><span class="hint">V tomto okruhu appka zákazku vyberie sama</span></div>`}
     <div class="field"><label for="pBudget">Rozpočet na prácu €</label><input id="pBudget" type="number" min="0" step="1" value="${p.budget ?? ""}"><span class="hint">Upozorní pri ${C.budget_warn_pct} % a pri prekročení</span></div>
     <div class="field full"><label for="pNote">Poznámka</label><input id="pNote" value="${esc(p.note)}"></div>
     <label class="check full"><input type="checkbox" id="pActive" ${p.active ? "checked" : ""}><div><b>Aktívna</b><span>Ukončená zákazka sa pracovníkom v appke neponúka.</span></div></label>
-  </form>`, `${id ? `<button class="btn danger" data-act="project-del" data-id="${id}">Zmazať</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="project-save">Uložiť</button>`, true);
+  </form>`, `${id ? `<button class="btn danger" data-act="project-del" data-id="${id}">Zmazať</button>` : ""}${id && V5() ? `<button class="btn" data-act="qr-print" data-id="${id}">Tlačiť QR</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="project-save">Uložiť</button>`, true);
+  pMap = null; if (off) return;
   pMap = L.map("pMap");
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "© OpenStreetMap"}).addTo(pMap);
   pMarker = pCircle = null;
@@ -1070,7 +1105,9 @@ async function saveProject() {
   const f = $("[data-form=project]"); const id = f.dataset.id;
   if (!f.pName.value.trim()) return toast("Zadaj názov", true);
   const row = {name: f.pName.value.trim(), address: f.pAddr.value.trim() || null, lat: f.pLat.value === "" ? null : +f.pLat.value, lng: f.pLng.value === "" ? null : +f.pLng.value,
-    radius: f.pRadius.value === "" ? null : +f.pRadius.value, budget: f.pBudget.value === "" ? null : +f.pBudget.value, active: f.pActive.checked, note: f.pNote.value.trim() || null};
+    radius: !f.pRadius || f.pRadius.value === "" ? null : +f.pRadius.value, budget: f.pBudget.value === "" ? null : +f.pBudget.value, active: f.pActive.checked, note: f.pNote.value.trim() || null};
+  if (f.pCode) { row.code = f.pCode.value.trim() || null;
+    if (row.code && P.some(p => p.id !== id && (p.code || "").toUpperCase() === row.code.toUpperCase())) return toast("Tento kód už má iná zákazka", true); }
   try {
     const saved = id ? await q(sb.from("projects").update(row).eq("id", id).select().single())
                      : await q(sb.from("projects").insert({...row, company_id: C.id}).select().single());
@@ -1299,18 +1336,34 @@ RENDER.nastavenia = async main => {
   <form class="card form" data-form="settings">
     <div class="field full"><label for="sName">Názov firmy</label><input id="sName" required value="${esc(C.name)}"></div>
     <div class="full">
-      <label class="check"><input type="checkbox" id="sGps" ${C.gps_enabled ? "checked" : ""}><div><b>Zaznamenávať polohu (GPS)</b><span>Poloha sa uloží len v okamihu Príchodu a appka podľa nej sama vyberie zákazku. Pri Odchode ani počas dňa sa nezisťuje. Každý pracovník musí v appke súhlasiť; bez súhlasu sa záznamy ukladajú bez polohy.</span></div></label>
+      <label class="check"><input type="checkbox" id="sGps" ${C.gps_enabled && !office() ? "checked" : ""} ${office() ? "disabled" : ""}><div><b>Zaznamenávať polohu (GPS)</b><span>Poloha sa uloží len v okamihu Príchodu a appka podľa nej sama vyberie zákazku. Pri Odchode ani počas dňa sa nezisťuje. Každý pracovník musí v appke súhlasiť; bez súhlasu sa záznamy ukladajú bez polohy.</span></div></label>
       <label class="check"><input type="checkbox" id="sBreaks" ${C.breaks_enabled ? "checked" : ""}><div><b>Prestávky / obed</b><span>V appke sa objaví tlačidlo Prestávka. Čas prestávky sa neráta do odpracovaných hodín.</span></div></label>
     </div>
+    ${V5() ? `<div class="full"><h3 style="margin:8px 0 0">Spôsob práce</h3></div>
+    <div class="field"><label for="sWork">Typ práce</label><select id="sWork">
+      <option value="field" ${C.work_mode !== "office" ? "selected" : ""}>Práca v teréne (rôzne miesta zákaziek)</option>
+      <option value="office" ${C.work_mode === "office" ? "selected" : ""}>Práca v sídle firmy (dielňa, výroba, kancelária)</option></select>
+      <span class="hint">V sídle firmy appka polohu nikdy nezisťuje. Zákazky sú nepovinné – bez nich má pracovník len Príchod a Odchod, s nimi si prepína, na čom robí (aj naskenovaním QR kódu).</span></div>
+    <div class="full">
+      <label class="check"><input type="checkbox" id="sPhotos" ${C.photos_enabled ? "checked" : ""}><div><b>Fotky k práci</b><span>Pracovník môže k záznamu pridať fotku.</span></div></label>
+      <label class="check"><input type="checkbox" id="sNotes" ${C.notes_enabled ? "checked" : ""}><div><b>Poznámky</b><span>Pracovník môže napísať, čo robil.</span></div></label></div>
+    <div class="field"><label for="sRound">Zaokrúhľovať čas príchodu a odchodu</label><select id="sRound">${[[0, "Nezaokrúhľovať"], [5, "na 5 minút"], [10, "na 10 minút"], [15, "na 15 minút"], [30, "na 30 minút"]].map(([v, t]) => `<option value="${v}" ${C.round_step === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+      <span class="hint">Len prvý príchod a posledný odchod, nie presun medzi zákazkami. Skutočný čas ostáva uložený a vidíš ho pri zázname.</span></div>
+    <div class="field"><label for="sRoundMode">Ako zaokrúhľovať</label><select id="sRoundMode" ${C.round_step ? "" : "disabled"}>
+      <option value="employee" ${C.round_mode === "employee" ? "selected" : ""}>V prospech zamestnanca (príchod nadol, odchod nahor)</option>
+      <option value="nearest" ${C.round_mode === "nearest" ? "selected" : ""}>Na najbližší čas (pri 15 min: 8:05 → 8:00, 16:27 → 16:30)</option>
+      <option value="company" ${C.round_mode === "company" ? "selected" : ""}>V prospech firmy (príchod nahor, odchod nadol)</option></select></div>
+    <div class="full"><h3 style="margin:8px 0 0">Ostatné</h3></div>`
+    : `<div class="full card flag">Zaokrúhľovanie času a práca v sídle firmy: v Supabase treba spustiť SQL súbor 0005_zaokruhlovanie_sidlo.sql.</div>`}
     <div class="field"><label for="sRate">Základná hodinová sadzba €</label><input id="sRate" type="number" min="0" step="0.01" value="${C.default_rate}"></div>
-    <div class="field"><label for="sRadius">Okruh zákazky (m)</label><input id="sRadius" type="number" min="50" max="5000" step="50" value="${C.default_radius}"><span class="hint">Predvolený, dá sa zmeniť pri každej zákazke</span></div>
+    <div class="field" ${office() ? "hidden" : ""}><label for="sRadius">Okruh zákazky (m)</label><input id="sRadius" type="number" min="50" max="5000" step="50" value="${C.default_radius}"><span class="hint">Predvolený, dá sa zmeniť pri každej zákazke</span></div>
     <div class="field"><label for="sHour">Pripomenúť zabudnutý odchod od (hod.)</label><input id="sHour" type="number" min="0" max="23" value="${C.forgot_checkout_hour}"></div>
     <div class="field"><label for="sMax">Upozorniť po (hodinách v kuse)</label><input id="sMax" type="number" min="1" max="24" value="${C.max_shift_hours}"></div>
     <div class="field"><label for="sWarn">Upozornenie na rozpočet pri (%)</label><input id="sWarn" type="number" min="1" max="100" value="${C.budget_warn_pct}"></div>
     <div class="field"><label for="sCashDays">Doklad za hotovosť do (dní)</label><input id="sCashDays" type="number" min="1" max="60" value="${C.cash_overdue_days ?? 3}"><span class="hint">Potom svieti na červeno</span></div>
     <div class="field"><label for="sCashLimit">Drobný zvyšok odpísať do €</label><input id="sCashLimit" type="number" min="0" step="0.5" value="${C.cash_writeoff_limit ?? 2}"><span class="hint">Väčší zvyšok: vrátil / z výplaty / odpísať</span></div>
     ${"gps_keep_days" in C ? `<div class="full"><h3 style="margin:8px 0 0">Ochrana osobných údajov</h3></div>
-    <div class="field"><label for="sGpsKeep">GPS súradnice mazať po (dňoch)</label><input id="sGpsKeep" type="number" min="7" max="3650" value="${C.gps_keep_days}"><span class="hint">Potom ostane len „na stavbe áno / nie“ a vzdialenosť</span></div>
+    <div class="field"><label for="sGpsKeep">GPS súradnice mazať po (dňoch)</label><input id="sGpsKeep" type="number" min="7" max="3650" value="${C.gps_keep_days}"><span class="hint">Potom ostane len „na mieste áno / nie“ a vzdialenosť</span></div>
     <div class="field"><label for="sPhotoKeep">Fotky k práci mazať po (dňoch)</label><input id="sPhotoKeep" type="number" min="60" max="3650" value="${C.photo_keep_days}"><span class="hint">Bločky z pokladne sa nemažú (účtovné doklady)</span></div>
     ${(() => { const pv = privOf(C), m = privMissing();
       return `<div class="full"><b>Prevádzkovateľ</b> <span class="muted small">– ukáže sa pracovníkom v appke v časti Ochrana údajov. Polia s * sú povinné.</span>
@@ -1328,13 +1381,15 @@ RENDER.nastavenia = async main => {
 };
 async function saveSettings() {
   const f = $("[data-form=settings]");
-  const row = {name: f.sName.value.trim(), gps_enabled: f.sGps.checked, breaks_enabled: f.sBreaks.checked, default_rate: +f.sRate.value || 0,
+  const row = {name: f.sName.value.trim(), gps_enabled: f.sGps.checked && !(f.sWork && f.sWork.value === "office"), breaks_enabled: f.sBreaks.checked, default_rate: +f.sRate.value || 0,
     default_radius: +f.sRadius.value || 500, forgot_checkout_hour: +f.sHour.value, max_shift_hours: +f.sMax.value, budget_warn_pct: +f.sWarn.value || 80,
     cash_overdue_days: +f.sCashDays.value || 3, cash_writeoff_limit: f.sCashLimit.value === "" ? 2 : +f.sCashLimit.value};
+  if (f.sWork) Object.assign(row, {work_mode: f.sWork.value, round_step: +f.sRound.value, round_mode: f.sRoundMode.value,
+    photos_enabled: f.sPhotos.checked, notes_enabled: f.sNotes.checked});
   if (f.sGpsKeep) Object.assign(row, {gps_keep_days: +f.sGpsKeep.value || 90, photo_keep_days: +f.sPhotoKeep.value || 365,
     privacy_controller: JSON.stringify(Object.fromEntries([["name", f.sPrivName], ["address", f.sPrivAddr], ["ico", f.sPrivIco], ["contact", f.sPrivContact], ["dpo", f.sPrivDpo]]
       .map(([k, el]) => [k, el.value.trim()]).filter(([, v]) => v))), privacy_url: f.sPrivUrl.value.trim() || null});
-  try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); if (f.sPrivName) go(); }
+  try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); if (f.sPrivName || f.sWork) go(); }
   catch (e) { toast(errMsg(e), true); }
 }
 
@@ -1378,6 +1433,7 @@ document.addEventListener("click", async ev => {
       case "rep-tab": repTab = el.dataset.t; go(); break;
       case "xlsx": await exportXlsx(); break;
       case "pdf": window.print(); break;
+      case "qr-print": printQr(el.dataset.id).catch(() => toast("QR kódy sa nepodarilo pripraviť", true)); break;
       case "worker": openWorker(id); break;
       case "worker-new": openWorker(null); break;
       case "worker-save": await saveWorker(); break;
@@ -1476,6 +1532,8 @@ document.addEventListener("change", async ev => {
   else if (t.id === "fInactive") { showInactive = t.checked; go(); }
   else if (t.id === "fCashWorker") { cashFlt.worker = t.value; go(); }
   else if (t.id === "adWorker" || t.id === "adDate") advInfo();
+  else if (t.id === "sWork") { const g = $("#sGps"); g.disabled = t.value === "office"; if (g.disabled) g.checked = false; }
+  else if (t.id === "sRound") $("#sRoundMode").disabled = !+t.value;
   else if (t.id === "pRadius" && pCircle) pCircle.setRadius(+t.value || C.default_radius);
   else if (t.dataset.taskName) updTask(+t.dataset.taskName, {name: t.value.trim()});
   else if (t.dataset.taskActive) updTask(+t.dataset.taskActive, {active: t.checked});
