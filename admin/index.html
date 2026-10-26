@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dochádzka – administrácia</title>
+<meta name="theme-color" content="#1B1F1D">
+<link rel="icon" href="../icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="../vendor/leaflet-1.9.4/leaflet.css">
+<style>
+:root{
+  --bg:#ECEEEA; --surface:#FFFFFF; --sunk:#F5F6F3; --ink:#1B1F1D; --muted:#5C635E; --line:#D3D7D1;
+  --accent:#F2B705; --accent-ink:#1B1F1D; --go:#1E7F4F; --stop:#B8322A; --flag:#D12A1F; --warn:#B86E00; --info:#2F5D8A;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121513; --surface:#1C201D; --sunk:#171A18; --ink:#EEF0EC; --muted:#9AA29C; --line:#2E3430;
+  --accent:#F5C02A; --accent-ink:#121513; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --warn:#E59A2F; --info:#7FB0E0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121513; --surface:#1C201D; --sunk:#171A18; --ink:#EEF0EC; --muted:#9AA29C; --line:#2E3430;
+  --accent:#F5C02A; --accent-ink:#121513; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --warn:#E59A2F; --info:#7FB0E0; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+a{color:var(--info)}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0}
+h1{font-size:30px} h2{font-size:22px} h3{font-size:18px}
+.muted{color:var(--muted)} .small{font-size:13px}
+
+/* rozloženie */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+nav{background:var(--ink);color:var(--bg);padding:16px 10px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh}
+nav .brand{font-family:var(--display);font-weight:700;font-size:22px;padding:4px 10px 2px}
+nav .firm{font-size:13px;opacity:.7;padding:0 10px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+nav a{color:inherit;text-decoration:none;padding:9px 12px;border-radius:10px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+nav a:hover{background:rgba(255,255,255,.08)}
+nav a.on{background:var(--accent);color:var(--accent-ink)}
+nav .cnt{font-size:12px;background:var(--flag);color:#fff;border-radius:999px;padding:0 7px;font-weight:600}
+nav .grow{flex:1}
+nav .me{font-size:13px;opacity:.7;padding:8px 10px;word-break:break-all}
+main{padding:22px 28px 60px;min-width:0;display:flex;flex-direction:column;gap:18px}
+.head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.head h1{flex:1}
+@media (max-width:860px){
+  .shell{grid-template-columns:1fr}
+  nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:10px}
+  nav .brand{width:100%} nav .firm,nav .grow,nav .me{display:none}
+  main{padding:16px}
+}
+
+/* prvky */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stat .l{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stat .v{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1}
+.btn{min-height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--stop);border-color:var(--stop)}
+.btn.sm{min-height:30px;padding:0 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.field input,.field select,.field textarea,.bar input,.bar select{min-height:38px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);padding:6px 10px}
+.field textarea{min-height:70px;resize:vertical}
+.bar input[type=checkbox]{min-height:0;padding:0}
+.field .hint{font-size:13px;color:var(--muted)}
+.form{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.form .full{grid-column:1/-1}
+@media (max-width:600px){.form{grid-template-columns:1fr}}
+.check{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.check:first-child{border-top:0}
+.check input{width:20px;height:20px;margin-top:2px;accent-color:var(--go)}
+.check b{display:block}
+.check span{color:var(--muted);font-size:14px}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;background:var(--sunk);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.go{color:var(--go);border-color:currentColor;background:transparent}
+.tag.warn{color:var(--warn);border-color:currentColor;background:transparent}
+.tag.flag{color:var(--flag);border-color:currentColor;background:transparent}
+.flag{color:var(--flag);font-weight:700}
+.warnc{color:var(--warn)}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+
+/* tabuľky */
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:9px 12px;text-align:left;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;border-top:0;background:var(--sunk);white-space:nowrap}
+td.r,th.r{text-align:right}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--sunk)}
+tr.edited td:first-child{box-shadow:inset 4px 0 0 var(--flag)}
+tr.sub td{background:var(--sunk);font-size:14px}
+tfoot td{font-weight:700;background:var(--sunk)}
+.orig{color:var(--flag);font-size:12px;display:block}
+.excl{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--flag);color:#fff;font-weight:700;font-size:13px;margin-right:4px;vertical-align:-3px}
+
+/* živý prehľad */
+.live{display:flex;flex-direction:column;gap:6px}
+.live .who{font-weight:600;font-size:17px}
+.live .since{font-family:var(--display);font-size:22px;font-weight:600}
+.pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--go);margin-right:6px}
+.meter{height:8px;border-radius:999px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--go)}
+.meter.warn i{background:var(--warn)} .meter.over i{background:var(--flag)}
+.map{height:340px;border-radius:12px;border:1px solid var(--line);z-index:0}
+.code{font-family:var(--display);font-size:34px;font-weight:700;letter-spacing:.12em;background:var(--sunk);border:1px dashed var(--line);border-radius:12px;padding:6px 14px;display:inline-block}
+
+/* okno */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:40px 12px;overflow:auto}
+.modal{background:var(--surface);border-radius:16px;width:100%;max-width:640px;display:flex;flex-direction:column}
+.modal.wide{max-width:860px}
+.modal header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal header h2{flex:1}
+.modal .body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.modal footer{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.modal footer .grow{flex:1}
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.photos img{width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:2000;font-weight:600;max-width:90%;text-align:center}
+.toast.err{background:var(--stop);color:#fff}
+
+/* prihlásenie */
+.auth{min-height:100vh;display:grid;place-items:center;padding:20px}
+.auth .card{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;padding:24px}
+.tabs{display:flex;gap:6px;background:var(--sunk);border-radius:12px;padding:4px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px;font-weight:600;color:var(--muted)}
+.tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.print-only{display:none}
+@media print{
+  nav,.noprint,.btn,.bar{display:none!important}
+  .shell{display:block} main{padding:0}
+  .print-only{display:block}
+  body{background:#fff;color:#000;font-size:11px}
+  .tablewrap,.card{border:0}
+  th{background:#eee!important}
+  tr.sub{display:table-row!important}
+}
+</style>
+</head>
+<body>
+<div id="auth" class="auth" hidden></div>
+<div id="shell" class="shell" hidden>
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<div id="modalRoot"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="../config.js"></script>
+<script src="../vendor/supabase-2.117.2.js"></script>
+<script src="../vendor/leaflet-1.9.4/leaflet.js"></script>
+<script src="../vendor/xlsx-0.18.5.mini.min.js"></script>
+<script>
+/* =====================================================================
+   ZÁKLAD
+   ===================================================================== */
+const CFG = window.DOCHADZKA;
+const sb = supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
+const WORKER_APP = new URL("../", location.href).href;   // appka pracovníka
+
+const $ = s => document.querySelector(s);
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ms = v => v == null ? null : (typeof v === "number" ? v : Date.parse(v));
+const pad = n => String(n).padStart(2, "0");
+const hm = v => { const d = new Date(ms(v)); return d.getHours() + ":" + pad(d.getMinutes()); };
+const dShort = v => new Date(ms(v)).toLocaleDateString("sk-SK", {weekday:"short", day:"numeric", month:"numeric"});
+const dFull = v => new Date(ms(v)).toLocaleDateString("sk-SK");
+const hhmm = t => { const m = Math.round(t / 60000); return Math.floor(m / 60) + ":" + pad(m % 60); };
+const hoursDec = t => Math.round(t / 36e3) / 100;
+const eur = n => new Intl.NumberFormat("sk-SK", {style:"currency", currency:"EUR"}).format(n || 0);
+const dateKey = v => { const d = new Date(ms(v)); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+const timeVal = v => { const d = new Date(ms(v)); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const KIND = {dovolenka:"Dovolenka", PN:"PN", volno:"Voľno"};
+
+function toast(t, err) {
+  const el = $("#toast"); el.textContent = t; el.className = "toast" + (err ? " err" : ""); el.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, err ? 5000 : 2600);
+}
+function errMsg(e) {
+  const m = e && (e.message || e.error_description || String(e));
+  if (/Invalid login credentials/i.test(m)) return "Nesprávny e-mail alebo heslo";
+  if (/Email not confirmed/i.test(m)) return "E-mail ešte nie je potvrdený – klikni na odkaz v e-maile";
+  if (/already registered/i.test(m)) return "Tento e-mail je už registrovaný – prihlás sa";
+  if (/Password should be/i.test(m)) return "Heslo musí mať aspoň 6 znakov";
+  if (/duplicate key.*tasks_pkey/i.test(m)) return "Úloha s týmto číslom už existuje";
+  if (/Failed to fetch|NetworkError/i.test(m)) return "Bez pripojenia na server";
+  return m;
+}
+async function q(p) { const {data, error} = await p; if (error) throw error; return data; }
+// Supabase vracia max. 1000 riadkov naraz – stránkujeme
+async function fetchAll(make) {
+  const out = []; const N = 1000;
+  for (let i = 0; ; i += N) { const d = await q(make().range(i, i + N - 1)); out.push(...d); if (d.length < N) break; }
+  return out;
+}
+
+/* =====================================================================
+   DÁTA
+   ===================================================================== */
+let USER = null, C = null, W = [], P = [], T = [], R = [], A = [];
+const worker = id => W.find(w => w.id === id);
+const project = id => P.find(p => p.id === id);
+const taskName = n => (T.find(t => t.num === n) || {}).name || ("Úloha " + n);
+const projName = e => e.project_id ? (project(e.project_id)?.name || "?") : ("Iné" + (e.other_text ? ": " + e.other_text : ""));
+const wName = id => worker(id)?.name || "?";
+
+function workedMs(e, now = Date.now()) {
+  const end = ms(e.end_at) ?? now; let t = end - ms(e.start_at);
+  (e.breaks || []).forEach(b => { t -= ((b.end ?? now) - b.start); });
+  return Math.max(0, t);
+}
+// Sadzba: najkonkrétnejšie pravidlo vyhráva (úloha 4 > zákazka 2 > pracovník 1), potom sadzba pracovníka, potom firmy
+function rateFor(e) {
+  let best = null, bs = -1;
+  for (const r of R) {
+    if (r.worker_id && r.worker_id !== e.worker_id) continue;
+    if (r.project_id && r.project_id !== e.project_id) continue;
+    if (r.task_num != null && r.task_num !== e.task_num) continue;
+    const s = (r.task_num != null ? 4 : 0) + (r.project_id ? 2 : 0) + (r.worker_id ? 1 : 0);
+    if (s > bs) { bs = s; best = r; }
+  }
+  if (best) return +best.rate;
+  const w = worker(e.worker_id);
+  return w && w.hourly_rate != null ? +w.hourly_rate : +(C.default_rate || 0);
+}
+const costOf = e => workedMs(e) / 36e5 * rateFor(e);
+
+async function loadBase() {
+  const cid = await q(sb.rpc("my_admin_company"));
+  if (!cid) { C = null; return; }
+  [C, W, P, T, R, A] = await Promise.all([
+    q(sb.from("companies").select("*").eq("id", cid).single()),
+    q(sb.from("workers").select("*").eq("company_id", cid).order("name")),
+    q(sb.from("projects").select("*").eq("company_id", cid).order("name")),
+    q(sb.from("tasks").select("*").eq("company_id", cid).order("num")),
+    q(sb.from("rates").select("*").eq("company_id", cid).order("created_at")),
+    q(sb.from("absences").select("*").eq("company_id", cid).order("date_from", {ascending:false}))
+  ]);
+}
+function monthRange(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  return [new Date(y, m - 1, 1), new Date(y, m, 1)];
+}
+const curMonth = () => { const d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1); };
+async function loadEntries(from, to) {
+  return fetchAll(() => sb.from("entries").select("*").eq("company_id", C.id)
+    .gte("start_at", from.toISOString()).lt("start_at", to.toISOString()).order("start_at"));
+}
+// celé čerpanie zákaziek s rozpočtom (od začiatku)
+async function loadBudgetUse() {
+  const ids = P.filter(p => p.budget).map(p => p.id);
+  const use = {};
+  if (!ids.length) return use;
+  const rows = await fetchAll(() => sb.from("entries").select("worker_id,project_id,task_num,start_at,end_at,breaks").in("project_id", ids).order("start_at"));
+  rows.forEach(e => { use[e.project_id] = (use[e.project_id] || 0) + costOf(e); });
+  return use;
+}
+function budgetState(p, used) {
+  if (!p.budget) return null;
+  const pct = used / p.budget * 100;
+  return {pct, cls: pct >= 100 ? "over" : pct >= C.budget_warn_pct ? "warn" : ""};
+}
+function distM(a, b) {
+  const R0 = 6371000, r = Math.PI / 180, dLa = (b.lat - a.lat) * r, dLo = (b.lng - a.lng) * r;
+  const x = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLo / 2) ** 2;
+  return 2 * R0 * Math.asin(Math.sqrt(x));
+}
+const fmtDist = m => m < 1000 ? Math.round(m / 10) * 10 + " m" : (m / 1000).toFixed(1).replace(".", ",") + " km";
+// poloha pri príchode vs. bod zákazky
+function gpsTag(e) {
+  const g = e.gps_start; if (!g) return "";
+  const p = project(e.project_id);
+  const link = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=17/${g.lat}/${g.lng}`;
+  if (p && p.lat != null) {
+    const d = distM(g, p), rad = p.radius || C.default_radius;
+    return d <= rad ? `<a class="tag go" href="${link}" target="_blank" rel="noopener" title="Príchod na mieste zákazky">GPS ✓</a>`
+                    : `<a class="tag warn" href="${link}" target="_blank" rel="noopener" title="Príchod mimo okruhu zákazky">GPS ${fmtDist(d)} od stavby</a>`;
+  }
+  return `<a class="tag" href="${link}" target="_blank" rel="noopener">GPS</a>`;
+}
+
+/* =====================================================================
+   PRIHLÁSENIE
+   ===================================================================== */
+let authTab = "login";
+function renderAuth(msg) {
+  $("#shell").hidden = true; $("#auth").hidden = false;
+  if (USER && !C) {   // prihlásený, ale ešte nemá firmu
+    $("#auth").innerHTML = `<form class="card" data-form="company">
+      <h1>Vytvoriť firmu</h1>
+      <p class="muted">Prihlásený ako ${esc(USER.email)}. Zadaj názov firmy, ktorú budeš spravovať.</p>
+      <div class="field"><label for="fCompany">Názov firmy</label><input id="fCompany" required value="${esc(localStorage.getItem("dochadzka.pendingCompany") || "")}"></div>
+      <button class="btn primary" style="min-height:46px">Vytvoriť</button>
+      <button class="btn" type="button" data-act="logout">Odhlásiť</button></form>`;
+    return;
+  }
+  $("#auth").innerHTML = `<form class="card" data-form="${authTab}">
+    <div><h1>Dochádzka</h1><p class="muted" style="margin:4px 0 0">Administrácia pre zamestnávateľa</p></div>
+    <div class="tabs"><button type="button" class="${authTab === "login" ? "on" : ""}" data-act="auth-tab" data-t="login">Prihlásiť</button><button type="button" class="${authTab === "signup" ? "on" : ""}" data-act="auth-tab" data-t="signup">Nová firma</button></div>
+    ${msg ? `<p style="margin:0" class="${msg.err ? "flag" : ""}">${esc(msg.t)}</p>` : ""}
+    ${authTab === "signup" ? `<div class="field"><label for="fCompany">Názov firmy</label><input id="fCompany" required autocomplete="organization"></div>` : ""}
+    <div class="field"><label for="fEmail">E-mail</label><input id="fEmail" type="email" required autocomplete="email"></div>
+    <div class="field"><label for="fPass">Heslo</label><input id="fPass" type="password" required minlength="6" autocomplete="${authTab === "login" ? "current-password" : "new-password"}"></div>
+    <button class="btn primary" style="min-height:46px">${authTab === "login" ? "Prihlásiť" : "Registrovať firmu"}</button>
+    ${authTab === "login" ? `<button type="button" class="btn" data-act="reset-pass">Zabudnuté heslo</button>` : ""}
+  </form>`;
+}
+async function doLogin(f) {
+  try {
+    const d = await q(sb.auth.signInWithPassword({email: f.fEmail.value.trim(), password: f.fPass.value}));
+    USER = d.user; await start();
+  } catch (e) { renderAuth({t: errMsg(e), err: true}); }
+}
+async function doSignup(f) {
+  const name = f.fCompany.value.trim();
+  try {
+    localStorage.setItem("dochadzka.pendingCompany", name);
+    const d = await q(sb.auth.signUp({email: f.fEmail.value.trim(), password: f.fPass.value, options: {emailRedirectTo: location.href.split("#")[0]}}));
+    if (!d.session) { authTab = "login"; renderAuth({t: "Poslali sme ti e-mail. Klikni na odkaz v ňom a potom sa tu prihlás."}); return; }
+    USER = d.user; await q(sb.rpc("create_company", {p_name: name}));
+    localStorage.removeItem("dochadzka.pendingCompany"); await start();
+  } catch (e) { renderAuth({t: errMsg(e), err: true}); }
+}
+async function doCreateCompany(f) {
+  try { await q(sb.rpc("create_company", {p_name: f.fCompany.value.trim()})); localStorage.removeItem("dochadzka.pendingCompany"); await start(); }
+  catch (e) { toast(errMsg(e), true); }
+}
+
+/* =====================================================================
+   NAVIGÁCIA
+   ===================================================================== */
+const VIEWS = [
+  ["prehlad", "Prehľad"], ["dochadzka", "Dochádzka"], ["vykazy", "Výkazy"], ["pracovnici", "Pracovníci"],
+  ["zakazky", "Zákazky"], ["ulohy", "Úlohy"], ["sadzby", "Sadzby"], ["nastavenia", "Nastavenia"]
+];
+const RENDER = {};
+let view = "prehlad", flt = {month: curMonth(), worker: "", project: "", edited: false}, repTab = "workers";
+let cache = {entries: [], range: null, budget: {}};
+
+function renderNav() {
+  $("#nav").innerHTML = `<div class="brand">Dochádzka</div><div class="firm">${esc(C.name)}</div>
+    ${VIEWS.map(([k, t]) => `<a href="#${k}" class="${view === k ? "on" : ""}">${t}</a>`).join("")}
+    <div class="grow"></div><div class="me">${esc(USER.email || "")}</div>
+    <a href="#" data-act="logout">Odhlásiť</a>`;
+}
+async function go() {
+  view = (location.hash.slice(1) || "prehlad").split("?")[0];
+  if (!VIEWS.some(v => v[0] === view)) view = "prehlad";
+  renderNav();
+  if (liveMap) { liveMap.remove(); liveMap = null; }
+  const main = $("#main");
+  main.innerHTML = `<div class="empty">Načítavam…</div>`;
+  try { await RENDER[view](main); } catch (e) { main.innerHTML = `<div class="card flag">Chyba: ${esc(errMsg(e))}</div>`; console.error(e); }
+}
+window.addEventListener("hashchange", go);
+
+/* =====================================================================
+   PREHĽAD – kto je kde, upozornenia
+   ===================================================================== */
+let liveMap = null, liveTimer = null;
+RENDER.prehlad = async main => {
+  const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+  const [open, today, budget] = await Promise.all([
+    q(sb.from("entries").select("*").eq("company_id", C.id).is("end_at", null).order("start_at")),
+    q(sb.from("entries").select("*").eq("company_id", C.id).gte("start_at", today0.toISOString()).order("start_at")),
+    loadBudgetUse()
+  ]);
+  cache.budget = budget;
+  const nowOpen = open.filter(e => ms(e.start_at) >= today0.getTime());
+  const forgotten = open.filter(e => ms(e.start_at) < today0.getTime());
+  const todayMs = today.reduce((a, e) => a + workedMs(e), 0);
+  const todayCost = today.reduce((a, e) => a + costOf(e), 0);
+  const active = W.filter(w => w.active);
+  const absentToday = A.filter(a => a.date_from <= dateKey(Date.now()) && a.date_to >= dateKey(Date.now()));
+  const present = new Set(today.map(e => e.worker_id));
+  const missing = active.filter(w => !present.has(w.id) && !absentToday.some(a => a.worker_id === w.id));
+  const editedToday = today.filter(e => e.edited).length;
+  const warnP = P.filter(p => p.active && budgetState(p, budget[p.id] || 0)?.cls);
+
+  main.innerHTML = `
+  <div class="head"><h1>Prehľad</h1><span class="muted small noprint">obnovuje sa každých 30 s · ${hm(Date.now())}</span></div>
+  <div class="stats">
+    <div class="stat"><div class="l">Teraz v práci</div><div class="v num">${nowOpen.length}</div></div>
+    <div class="stat"><div class="l">Dnes odpracované</div><div class="v num">${hhmm(todayMs)} h</div></div>
+    <div class="stat"><div class="l">Dnes cena práce</div><div class="v num">${eur(todayCost)}</div></div>
+    <div class="stat"><div class="l">Dnes upravené</div><div class="v num ${editedToday ? "flag" : ""}">${editedToday}</div></div>
+  </div>
+  ${forgotten.length ? `<div class="card" style="border:2px solid var(--flag)"><h3 class="flag">Zabudnutý odchod</h3>
+    ${forgotten.map(e => `<p style="margin:6px 0">${esc(wName(e.worker_id))} – ${esc(projName(e))}, príchod ${dFull(e.start_at)} ${hm(e.start_at)}, bez odchodu. <button class="btn sm" data-act="entry" data-id="${e.id}">Upraviť</button></p>`).join("")}</div>` : ""}
+  ${warnP.length ? `<div class="card" style="border:2px solid var(--warn)"><h3 class="warnc">Rozpočet zákazky</h3>
+    ${warnP.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u); return `<p style="margin:6px 0"><b>${esc(p.name)}</b>: ${eur(u)} z ${eur(p.budget)} (${Math.round(s.pct)} %)${s.cls === "over" ? ` <span class="tag flag">prekročený</span>` : ""}</p>`; }).join("")}</div>` : ""}
+  <h2>Teraz v práci</h2>
+  ${nowOpen.length ? `<div class="grid">${nowOpen.map(e => `<div class="card live">
+      <div class="who"><span class="pulse"></span>${esc(wName(e.worker_id))}</div>
+      <div><b>${esc(projName(e))}</b><br><span class="muted">${e.task_num} · ${esc(taskName(e.task_num))}${e.note ? " · " + esc(e.note) : ""}</span></div>
+      <div class="since num">od ${hm(e.start_at)} · ${hhmm(workedMs(e))} h</div>
+      <div class="bar">${gpsTag(e)}${e.edited ? `<span class="tag flag">! upravené</span>` : ""}${(e.breaks || []).some(b => b.end == null) ? `<span class="tag warn">prestávka</span>` : ""}</div>
+    </div>`).join("")}</div>` : `<div class="card empty">Nikto nie je práve prihlásený na zákazke.</div>`}
+  ${P.some(p => p.lat != null) || nowOpen.some(e => e.gps_start) ? `<div id="liveMap" class="map"></div>` : ""}
+  <div class="grid">
+    <div class="card"><h3>Dnes ešte neprišli</h3>${missing.length ? missing.map(w => `<div>${esc(w.name)}</div>`).join("") : `<p class="muted">Všetci sú v práci alebo boli.</p>`}</div>
+    <div class="card"><h3>Dnes neprítomní</h3>${absentToday.length ? absentToday.map(a => `<div>${esc(wName(a.worker_id))} – ${KIND[a.kind]} do ${dFull(a.date_to)}</div>`).join("") : `<p class="muted">Nikto.</p>`}</div>
+  </div>`;
+
+  const mapEl = $("#liveMap");
+  if (mapEl) {
+    liveMap = L.map(mapEl, {scrollWheelZoom: false});
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "© OpenStreetMap"}).addTo(liveMap);
+    const pts = [];
+    P.filter(p => p.active && p.lat != null).forEach(p => {
+      L.circle([p.lat, p.lng], {radius: p.radius || C.default_radius, color: "#F2B705", weight: 2, fillOpacity: .12}).addTo(liveMap).bindTooltip(p.name);
+      pts.push([p.lat, p.lng]);
+    });
+    nowOpen.filter(e => e.gps_start).forEach(e => {
+      L.circleMarker([e.gps_start.lat, e.gps_start.lng], {radius: 8, color: "#1E7F4F", fillColor: "#1E7F4F", fillOpacity: .9})
+        .addTo(liveMap).bindTooltip(wName(e.worker_id), {permanent: true, direction: "right"});
+      pts.push([e.gps_start.lat, e.gps_start.lng]);
+    });
+    if (pts.length) liveMap.fitBounds(pts, {padding: [40, 40], maxZoom: 15}); else liveMap.setView([48.15, 17.11], 11);
+  }
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => { if (view === "prehlad" && !$("#modalRoot").innerHTML) go(); }, 30000);
+};
+
+/* =====================================================================
+   DOCHÁDZKA – všetky záznamy
+   ===================================================================== */
+async function monthEntries() {
+  const key = flt.month;
+  if (cache.range !== key) { const [a, b] = monthRange(key); cache.entries = await loadEntries(a, b); cache.range = key; }
+  return cache.entries;
+}
+RENDER.dochadzka = async main => {
+  const all = await monthEntries();
+  const list = all.filter(e => (!flt.worker || e.worker_id === flt.worker) && (!flt.project || (flt.project === "ine" ? !e.project_id : e.project_id === flt.project)) && (!flt.edited || e.edited));
+  const totMs = list.reduce((a, e) => a + workedMs(e), 0), totCost = list.reduce((a, e) => a + costOf(e), 0);
+  const nEdited = all.filter(e => e.edited).length;
+  main.innerHTML = `
+  <div class="head"><h1>Dochádzka</h1><button class="btn accent" data-act="entry-new">+ Pridať záznam</button></div>
+  <div class="bar">
+    <input type="month" id="fMonth" value="${flt.month}" aria-label="Mesiac">
+    <select id="fWorker" aria-label="Pracovník"><option value="">Všetci pracovníci</option>${W.map(w => `<option value="${w.id}" ${flt.worker === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select>
+    <select id="fProject" aria-label="Zákazka"><option value="">Všetky zákazky</option>${P.map(p => `<option value="${p.id}" ${flt.project === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}<option value="ine" ${flt.project === "ine" ? "selected" : ""}>Iné</option></select>
+    <label class="tag ${flt.edited ? "flag" : ""}" style="padding:6px 10px;cursor:pointer"><input type="checkbox" id="fEdited" ${flt.edited ? "checked" : ""}> len upravené (${nEdited})</label>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Deň</th><th>Pracovník</th><th>Čas</th><th>Zákazka</th><th>Úloha / poznámka</th><th class="r">Hodiny</th><th class="r">Cena</th><th></th></tr></thead>
+    <tbody>${list.length ? list.map(entryRow).join("") : `<tr><td colspan="8" class="empty">Žiadne záznamy.</td></tr>`}</tbody>
+    ${list.length ? `<tfoot><tr><td colspan="5">Spolu (${list.length} záznamov)</td><td class="r num">${hhmm(totMs)}</td><td class="r num">${eur(totCost)}</td><td></td></tr></tfoot>` : ""}
+  </table></div>
+  <p class="muted small"><span class="excl">!</span> = pracovník si v mobile zmenil čas príchodu alebo odchodu. Pôvodný čas je napísaný pod tým.</p>`;
+};
+function entryRow(e) {
+  const orig = e.edited ? `<span class="orig">pôvodne ${hm(e.start_orig || e.start_at)}–${e.end_orig ? hm(e.end_orig) : (e.end_at ? hm(e.end_at) : "…")}</span>` : "";
+  return `<tr class="click ${e.edited ? "edited" : ""}" data-act="entry" data-id="${e.id}">
+    <td class="num">${dShort(e.start_at)}</td>
+    <td>${esc(wName(e.worker_id))}</td>
+    <td class="num" style="white-space:nowrap">${e.edited ? `<span class="excl" title="Upravené pracovníkom">!</span>` : ""}${hm(e.start_at)}–${e.end_at ? hm(e.end_at) : `<b style="color:var(--go)">v práci</b>`}${orig}${e.by_admin ? `<span class="small muted" style="display:block">zmena od správcu</span>` : ""}</td>
+    <td>${esc(projName(e))}</td>
+    <td>${e.task_num} · ${esc(taskName(e.task_num))}${e.note ? `<br><span class="muted small">${esc(e.note)}</span>` : ""}</td>
+    <td class="r num">${hhmm(workedMs(e))}</td>
+    <td class="r num">${eur(costOf(e))}</td>
+    <td><div class="bar" style="flex-wrap:nowrap">${gpsTag(e)}${e.photos?.length ? `<span class="tag">📷 ${e.photos.length}</span>` : ""}</div></td>
+  </tr>`;
+}
+
+async function openEntry(id) {
+  let e = cache.entries.find(x => x.id === id);
+  if (!e && id) e = await q(sb.from("entries").select("*").eq("id", id).single());
+  const isNew = !e;
+  e = e || {id: crypto.randomUUID(), worker_id: W.find(w => w.active)?.id, project_id: P.find(p => p.active)?.id || null, task_num: 0, note: "", other_text: "", start_at: new Date().setHours(7, 0, 0, 0), end_at: new Date().setHours(15, 30, 0, 0), photos: [], breaks: []};
+  modal(isNew ? "Nový záznam" : "Záznam", `<form class="form" data-form="entry" data-id="${e.id}" data-new="${isNew ? 1 : ""}">
+    ${e.edited ? `<div class="full card" style="border:2px solid var(--flag)"><b class="flag">! Pracovník čas upravil</b><br>Pôvodne: príchod ${e.start_orig ? hm(e.start_orig) : "nemenený"}, odchod ${e.end_orig ? hm(e.end_orig) : "nemenený"}</div>` : ""}
+    <div class="field"><label for="eWorker">Pracovník</label><select id="eWorker">${W.map(w => `<option value="${w.id}" ${w.id === e.worker_id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
+    <div class="field"><label for="eDate">Deň</label><input id="eDate" type="date" value="${dateKey(e.start_at)}" required></div>
+    <div class="field"><label for="eStart">Príchod</label><input id="eStart" type="time" value="${timeVal(e.start_at)}" required></div>
+    <div class="field"><label for="eEnd">Odchod</label><input id="eEnd" type="time" value="${e.end_at ? timeVal(e.end_at) : ""}"><span class="hint">Prázdne = ešte v práci</span></div>
+    <div class="field"><label for="eProject">Zákazka</label><select id="eProject">${P.map(p => `<option value="${p.id}" ${p.id === e.project_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}<option value="" ${!e.project_id ? "selected" : ""}>Iné</option></select></div>
+    <div class="field"><label for="eOther">Iné – čo / kde</label><input id="eOther" value="${esc(e.other_text)}"></div>
+    <div class="field"><label for="eTask">Úloha</label><select id="eTask">${T.map(t => `<option value="${t.num}" ${t.num === e.task_num ? "selected" : ""}>${t.num} · ${esc(t.name)}</option>`).join("")}</select></div>
+    <div class="field"><label>Sadzba / cena</label><div style="padding:8px 0">${eur(rateFor(e))}/h · ${isNew ? "–" : eur(costOf(e))}</div></div>
+    <div class="field full"><label for="eNote">Poznámka</label><input id="eNote" value="${esc(e.note)}"></div>
+    ${e.gps_start || e.gps_end ? `<div class="full bar">${e.gps_start ? `<span>Príchod: ${gpsTag(e)}</span>` : ""}${e.gps_end ? `<a class="tag" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${e.gps_end.lat}&mlon=${e.gps_end.lng}#map=17/${e.gps_end.lat}/${e.gps_end.lng}">Odchod GPS</a>` : ""}</div>` : ""}
+    ${(e.breaks || []).length ? `<div class="full small muted">Prestávky: ${e.breaks.map(b => hm(b.start) + "–" + (b.end ? hm(b.end) : "…")).join(", ")}</div>` : ""}
+    ${e.photos?.length ? `<div class="full photos" id="ePhotos"><span class="muted">Načítavam fotky…</span></div>` : ""}
+  </form>`, `${isNew ? "" : `<button class="btn danger" data-act="entry-del" data-id="${e.id}">Zmazať</button>`}<span class="grow"></span>
+    <button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="entry-save">Uložiť</button>`, true);
+  if (e.photos?.length) {
+    try {
+      const urls = await q(sb.storage.from("fotky").createSignedUrls(e.photos, 3600));
+      const el = $("#ePhotos"); if (el) el.innerHTML = urls.map(u => u.signedUrl ? `<a href="${u.signedUrl}" target="_blank" rel="noopener"><img src="${u.signedUrl}" alt="Fotka k záznamu"></a>` : "").join("") || `<span class="muted">Fotky sa ešte nahrávajú z mobilu.</span>`;
+    } catch (err) { const el = $("#ePhotos"); if (el) el.innerHTML = `<span class="muted">Fotky sa nepodarilo načítať.</span>`; }
+  }
+}
+async function saveEntry() {
+  const f = $("[data-form=entry]"); const id = f.dataset.id, isNew = !!f.dataset.new;
+  const d = f.eDate.value; const mk = t => new Date(d + "T" + t + ":00").getTime();
+  const s = mk(f.eStart.value), en = f.eEnd.value ? mk(f.eEnd.value) : null;
+  if (en != null && en <= s) return toast("Odchod musí byť po príchode", true);
+  const w = worker(f.eWorker.value);
+  const row = {worker_id: w.id, company_id: C.id, project_id: f.eProject.value || null, other_text: f.eProject.value ? "" : f.eOther.value.trim(),
+    task_num: +f.eTask.value, note: f.eNote.value.trim(), start_at: new Date(s).toISOString(), end_at: en == null ? null : new Date(en).toISOString()};
+  try {
+    if (isNew) await q(sb.from("entries").insert({...row, id, by_admin: true}));
+    else await q(sb.from("entries").update(row).eq("id", id));
+    cache.range = null; closeModal(); toast("Uložené"); go();
+  } catch (e) { toast(errMsg(e), true); }
+}
+
+/* =====================================================================
+   VÝKAZY – mesačný súhrn na pracovníka a na zákazku, export
+   ===================================================================== */
+function workdays(from, to) {      // počet pracovných dní (po–pi) v rozsahu dátumov vrátane
+  let n = 0; const d = new Date(from + "T12:00:00"), e = new Date(to + "T12:00:00");
+  for (; d <= e; d.setDate(d.getDate() + 1)) if (d.getDay() % 6) n++;
+  return n;
+}
+function absenceDays(wid, ym) {
+  const [a, b] = monthRange(ym); const mFrom = dateKey(a), mTo = dateKey(b - 864e5);
+  const out = {dovolenka: 0, PN: 0, volno: 0};
+  A.filter(x => x.worker_id === wid && x.date_to >= mFrom && x.date_from <= mTo).forEach(x => {
+    out[x.kind] += workdays(x.date_from > mFrom ? x.date_from : mFrom, x.date_to < mTo ? x.date_to : mTo);
+  });
+  return out;
+}
+function summarize(list, keyFn) {
+  const m = new Map();
+  list.forEach(e => { const k = keyFn(e); const o = m.get(k) || {ms: 0, cost: 0, n: 0, edited: 0, days: new Set(), items: []};
+    o.ms += workedMs(e); o.cost += costOf(e); o.n++; o.edited += e.edited ? 1 : 0; o.days.add(dateKey(e.start_at)); o.items.push(e); m.set(k, o); });
+  return m;
+}
+function reportData(all) {
+  const byW = summarize(all, e => e.worker_id), byP = summarize(all, e => e.project_id || "ine");
+  const workers = W.filter(w => w.active || byW.has(w.id)).map(w => {
+    const s = byW.get(w.id) || {ms: 0, cost: 0, n: 0, edited: 0, days: new Set(), items: []};
+    return {w, s, abs: w.type === "TPP" ? absenceDays(w.id, flt.month) : null, perP: summarize(s.items, e => e.project_id || "ine")};
+  });
+  const projects = [...byP.keys()].map(k => ({k, p: k === "ine" ? null : project(k), s: byP.get(k), perW: summarize(byP.get(k).items, e => e.worker_id), perT: summarize(byP.get(k).items, e => e.task_num)}))
+    .sort((a, b) => b.s.cost - a.s.cost);
+  return {workers, projects};
+}
+RENDER.vykazy = async main => {
+  const all = await monthEntries(); const budget = cache.budget = await loadBudgetUse();
+  const {workers, projects} = reportData(all);
+  const monthTxt = new Date(monthRange(flt.month)[0]).toLocaleDateString("sk-SK", {month: "long", year: "numeric"});
+  const tot = all.reduce((a, e) => a + workedMs(e), 0), totC = all.reduce((a, e) => a + costOf(e), 0);
+  main.innerHTML = `
+  <div class="print-only"><h1>${esc(C.name)} – výkaz ${monthTxt}</h1></div>
+  <div class="head noprint"><h1>Výkazy</h1>
+    <button class="btn" data-act="xlsx">Export Excel</button><button class="btn" data-act="pdf">Export PDF</button></div>
+  <div class="bar"><input type="month" id="fMonth" value="${flt.month}" aria-label="Mesiac">
+    <div class="tabs" style="min-width:300px"><button class="${repTab === "workers" ? "on" : ""}" data-act="rep-tab" data-t="workers">Na pracovníka</button><button class="${repTab === "projects" ? "on" : ""}" data-act="rep-tab" data-t="projects">Na zákazku</button></div></div>
+  <div class="stats"><div class="stat"><div class="l">${monthTxt}</div><div class="v num">${hhmm(tot)} h</div></div><div class="stat"><div class="l">Cena práce</div><div class="v num">${eur(totC)}</div></div></div>
+  ${repTab === "workers" ? `<div class="tablewrap"><table>
+    <thead><tr><th>Pracovník</th><th>Typ</th><th class="r">Dni</th><th class="r">Hodiny</th><th class="r">Cena práce</th><th class="r">Dovolenka</th><th class="r">PN</th><th class="r">Voľno</th><th class="r">Upravené</th></tr></thead>
+    <tbody>${workers.map(({w, s, abs, perP}) => `<tr><td><b>${esc(w.name)}</b></td><td>${w.type === "TPP" ? "TPP" : "živnostník"}</td><td class="r num">${s.days.size}</td><td class="r num">${hhmm(s.ms)}</td><td class="r num"><b>${eur(s.cost)}</b></td>
+      <td class="r num">${abs ? abs.dovolenka || "" : "–"}</td><td class="r num">${abs ? abs.PN || "" : "–"}</td><td class="r num">${abs ? abs.volno || "" : "–"}</td><td class="r num ${s.edited ? "flag" : ""}">${s.edited ? "! " + s.edited : ""}</td></tr>
+      ${[...perP.entries()].map(([k, o]) => `<tr class="sub"><td colspan="3" style="padding-left:28px">${esc(k === "ine" ? "Iné" : project(k)?.name)}</td><td class="r num">${hhmm(o.ms)}</td><td class="r num">${eur(o.cost)}</td><td colspan="4"></td></tr>`).join("")}`).join("")}</tbody>
+    <tfoot><tr><td colspan="3">Spolu</td><td class="r num">${hhmm(tot)}</td><td class="r num">${eur(totC)}</td><td colspan="4"></td></tr></tfoot></table></div>
+    <p class="muted small">Neprítomnosť je v pracovných dňoch (po–pi) a len pre TPP.</p>`
+  : `<div class="tablewrap"><table>
+    <thead><tr><th>Zákazka</th><th class="r">Hodiny</th><th class="r">Cena práce</th><th>Rozpočet (celkové čerpanie)</th></tr></thead>
+    <tbody>${projects.length ? projects.map(({k, p, s, perW, perT}) => { const u = budget[k] || 0, st = p ? budgetState(p, u) : null;
+      return `<tr><td><b>${esc(p ? p.name : "Iné")}</b></td><td class="r num">${hhmm(s.ms)}</td><td class="r num"><b>${eur(s.cost)}</b></td>
+      <td>${st ? `<div class="meter ${st.cls}" style="max-width:220px"><i style="width:${Math.min(100, st.pct)}%"></i></div><span class="small ${st.cls === "over" ? "flag" : st.cls ? "warnc" : "muted"}">${eur(u)} z ${eur(p.budget)} · ${Math.round(st.pct)} %</span>` : `<span class="muted">–</span>`}</td></tr>
+      ${[...perW.entries()].map(([wid, o]) => `<tr class="sub"><td style="padding-left:28px">${esc(wName(wid))}</td><td class="r num">${hhmm(o.ms)}</td><td class="r num">${eur(o.cost)}</td><td class="small muted">${[...summarize(o.items, e => e.task_num).entries()].map(([n, t]) => esc(taskName(n)) + " " + hhmm(t.ms)).join(", ")}</td></tr>`).join("")}`; }).join("")
+      : `<tr><td colspan="4" class="empty">Žiadne záznamy.</td></tr>`}</tbody>
+    <tfoot><tr><td>Spolu</td><td class="r num">${hhmm(tot)}</td><td class="r num">${eur(totC)}</td><td></td></tr></tfoot></table></div>`}`;
+};
+function exportXlsx() {
+  const all = cache.entries; const {workers, projects} = reportData(all);
+  const wb = XLSX.utils.book_new();
+  const s1 = [["Pracovník", "Typ", "Dni", "Hodiny", "Cena práce €", "Dovolenka (dni)", "PN (dni)", "Voľno (dni)", "Upravené záznamy"],
+    ...workers.map(({w, s, abs}) => [w.name, w.type === "TPP" ? "TPP" : "živnostník", s.days.size, hoursDec(s.ms), Math.round(s.cost * 100) / 100, abs?.dovolenka ?? "", abs?.PN ?? "", abs?.volno ?? "", s.edited])];
+  const s2 = [["Zákazka", "Pracovník", "Hodiny", "Cena práce €", "Rozpočet €", "Čerpanie celkom €"]];
+  projects.forEach(({k, p, s, perW}) => {
+    s2.push([p ? p.name : "Iné", "SPOLU", hoursDec(s.ms), Math.round(s.cost * 100) / 100, p?.budget ?? "", p?.budget ? Math.round((cache.budget[k] || 0) * 100) / 100 : ""]);
+    perW.forEach((o, wid) => s2.push([p ? p.name : "Iné", wName(wid), hoursDec(o.ms), Math.round(o.cost * 100) / 100, "", ""]));
+  });
+  const s3 = [["Dátum", "Pracovník", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Hodiny", "Sadzba €/h", "Cena €", "Upravené", "Pôvodný príchod", "Pôvodný odchod"],
+    ...all.map(e => [dFull(e.start_at), wName(e.worker_id), hm(e.start_at), e.end_at ? hm(e.end_at) : "v práci", projName(e), e.task_num, taskName(e.task_num), e.note,
+      hoursDec(workedMs(e)), rateFor(e), Math.round(costOf(e) * 100) / 100, e.edited ? "ÁNO" : "", e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : ""])];
+  [[s1, "Pracovníci"], [s2, "Zákazky"], [s3, "Záznamy"]].forEach(([d, n]) => { const ws = XLSX.utils.aoa_to_sheet(d); ws["!cols"] = d[0].map(() => ({wch: 16})); XLSX.utils.book_append_sheet(wb, ws, n); });
+  XLSX.writeFile(wb, `dochadzka-${flt.month}.xlsx`);
+}
+
+/* =====================================================================
+   PRACOVNÍCI
+   ===================================================================== */
+RENDER.pracovnici = async main => {
+  main.innerHTML = `<div class="head"><h1>Pracovníci</h1><button class="btn accent" data-act="worker-new">+ Pridať pracovníka</button></div>
+  <div class="tablewrap"><table><thead><tr><th>Meno</th><th>Typ</th><th class="r">Sadzba</th><th>Mobil</th><th>Poloha</th><th></th></tr></thead>
+  <tbody>${W.length ? W.map(w => `<tr class="click" data-act="worker" data-id="${w.id}" style="${w.active ? "" : "opacity:.55"}">
+    <td><b>${esc(w.name)}</b>${w.active ? "" : ` <span class="tag">neaktívny</span>`}${w.phone ? `<br><span class="small muted">${esc(w.phone)}</span>` : ""}</td>
+    <td>${w.type === "TPP" ? "TPP" : "živnostník"}</td>
+    <td class="r num">${w.hourly_rate != null ? eur(w.hourly_rate) : `<span class="muted">${eur(C.default_rate)}</span>`}</td>
+    <td>${w.user_id ? `<span class="tag go">prihlásený</span>` : `<span class="tag warn">čaká na prihlásenie</span>`}</td>
+    <td>${!C.gps_enabled ? `<span class="muted small">vypnutá</span>` : w.gps_consent === true ? `<span class="tag go">súhlasí</span>` : w.gps_consent === false ? `<span class="tag flag">nesúhlasí</span>` : `<span class="muted small">neodpovedal</span>`}</td>
+    <td><button class="btn sm" data-act="invite" data-id="${w.id}">Odkaz do mobilu</button></td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">Zatiaľ žiadni pracovníci. Pridaj prvého.</td></tr>`}</tbody></table></div>`;
+};
+function openWorker(id) {
+  const w = worker(id) || {name: "", phone: "", type: "TPP", hourly_rate: null, active: true, note: ""};
+  const abs = id ? A.filter(a => a.worker_id === id) : [];
+  modal(id ? w.name : "Nový pracovník", `<form class="form" data-form="worker" data-id="${id || ""}">
+    <div class="field"><label for="wName">Meno a priezvisko</label><input id="wName" required value="${esc(w.name)}"></div>
+    <div class="field"><label for="wPhone">Telefón</label><input id="wPhone" type="tel" value="${esc(w.phone)}"><span class="hint">Na poslanie odkazu cez SMS / WhatsApp</span></div>
+    <div class="field"><label for="wType">Typ</label><select id="wType"><option value="TPP" ${w.type === "TPP" ? "selected" : ""}>TPP (zamestnanec)</option><option value="SZCO" ${w.type === "SZCO" ? "selected" : ""}>Živnostník</option></select></div>
+    <div class="field"><label for="wRate">Hodinová sadzba €</label><input id="wRate" type="number" step="0.01" min="0" value="${w.hourly_rate ?? ""}" placeholder="${C.default_rate} (základná firmy)"></div>
+    <div class="field full"><label for="wNote">Poznámka</label><input id="wNote" value="${esc(w.note)}"></div>
+    <label class="check full"><input type="checkbox" id="wActive" ${w.active ? "checked" : ""}><div><b>Aktívny</b><span>Neaktívny pracovník sa nevie prihlásiť, jeho záznamy ostávajú.</span></div></label>
+  </form>
+  ${id && w.type === "TPP" ? `<div class="card" style="padding:12px"><h3>Neprítomnosť</h3>
+    <form class="bar" data-form="absence" data-id="${id}" style="margin:8px 0">
+      <select id="aKind">${Object.entries(KIND).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select>
+      <input type="date" id="aFrom" required aria-label="Od"> – <input type="date" id="aTo" required aria-label="Do">
+      <input id="aNote" placeholder="poznámka" style="flex:1;min-width:120px"><button class="btn">Pridať</button></form>
+    ${abs.length ? `<table><tbody>${abs.map(a => `<tr><td>${KIND[a.kind]}</td><td class="num">${dFull(a.date_from)} – ${dFull(a.date_to)}</td><td class="r num">${workdays(a.date_from, a.date_to)} prac. dní</td><td class="muted">${esc(a.note || "")}</td><td class="r"><button class="btn sm danger" data-act="absence-del" data-id="${a.id}" data-w="${id}">Zmazať</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted" style="margin:0">Žiadna zadaná neprítomnosť.</p>`}</div>` : ""}`,
+  `${id ? `<button class="btn" data-act="invite" data-id="${id}">Odkaz do mobilu</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="worker-save">Uložiť</button>`);
+}
+async function saveWorker() {
+  const f = $("[data-form=worker]"); const id = f.dataset.id;
+  if (!f.wName.value.trim()) return toast("Zadaj meno", true);
+  const row = {name: f.wName.value.trim(), phone: f.wPhone.value.trim() || null, type: f.wType.value,
+    hourly_rate: f.wRate.value === "" ? null : +f.wRate.value, active: f.wActive.checked, note: f.wNote.value.trim() || null};
+  try {
+    let saved;
+    if (id) saved = await q(sb.from("workers").update(row).eq("id", id).select().single());
+    else saved = await q(sb.from("workers").insert({...row, company_id: C.id}).select().single());
+    W = W.filter(w => w.id !== saved.id).concat(saved).sort((a, b) => a.name.localeCompare(b.name, "sk"));
+    closeModal(); toast("Uložené");
+    if (!id) openInvite(saved.id); else go();
+  } catch (e) { toast(errMsg(e), true); }
+}
+function inviteLink(w) { return WORKER_APP + "?kod=" + w.invite_code; }
+function openInvite(id) {
+  const w = worker(id); const link = inviteLink(w);
+  const msg = `Ahoj ${w.name.split(" ")[0]}, tu je appka na dochádzku ${C.name}: ${link} – otvor ju v mobile a pridaj si ju na plochu. Ak sa pýta na kód, zadaj ${w.invite_code}.`;
+  const tel = (w.phone || "").replace(/[^\d+]/g, "");
+  modal("Odkaz do mobilu – " + w.name, `
+    <p style="margin:0">Pošli pracovníkovi tento odkaz. Po otvorení sa appka v mobile sama prihlási. Na iPhone si ju po pridaní na plochu ešte raz prihlási kódom.</p>
+    <div><div class="muted small">Kód na prihlásenie</div><span class="code">${w.invite_code.slice(0, 4)}-${w.invite_code.slice(4)}</span></div>
+    <div class="field"><label for="iLink">Odkaz</label><input id="iLink" readonly value="${esc(link)}"></div>
+    <div class="bar">
+      <button class="btn primary" data-act="copy" data-v="${esc(msg)}">Kopírovať správu</button>
+      <a class="btn" href="sms:${tel}?&body=${encodeURIComponent(msg)}">Poslať SMS</a>
+      <a class="btn" target="_blank" rel="noopener" href="https://wa.me/${tel.replace(/^\+/, "").replace(/^0/, "421")}?text=${encodeURIComponent(msg)}">WhatsApp</a>
+    </div>
+    <p class="muted small" style="margin:0">${w.user_id ? "Pracovník je už prihlásený v mobile." : "Pracovník sa ešte neprihlásil."} Ak stratil mobil, vytvor nový kód – starý mobil sa odhlási.</p>`,
+    `<button class="btn danger" data-act="new-code" data-id="${id}">Nový kód</button><span class="grow"></span><button class="btn primary" data-act="close">Hotovo</button>`);
+}
+
+/* =====================================================================
+   ZÁKAZKY – s bodom na mape a okruhom
+   ===================================================================== */
+RENDER.zakazky = async main => {
+  const budget = cache.budget = await loadBudgetUse();
+  main.innerHTML = `<div class="head"><h1>Zákazky</h1><button class="btn accent" data-act="project-new">+ Nová zákazka</button></div>
+  <div class="tablewrap"><table><thead><tr><th>Zákazka</th><th>Poloha</th><th>Rozpočet</th><th></th></tr></thead>
+  <tbody>${P.length ? P.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u);
+    return `<tr class="click" data-act="project" data-id="${p.id}" style="${p.active ? "" : "opacity:.55"}">
+    <td><b>${esc(p.name)}</b>${p.active ? "" : ` <span class="tag">ukončená</span>`}<br><span class="small muted">${esc(p.address || "")}</span></td>
+    <td>${p.lat != null ? `<span class="tag go">na mape · ${p.radius || C.default_radius} m</span>` : `<span class="tag warn">bez polohy</span>`}</td>
+    <td style="min-width:200px">${s ? `<div class="meter ${s.cls}"><i style="width:${Math.min(100, s.pct)}%"></i></div><span class="small ${s.cls === "over" ? "flag" : s.cls ? "warnc" : "muted"}">${eur(u)} z ${eur(p.budget)} · ${Math.round(s.pct)} %</span>` : `<span class="muted">–</span>`}</td>
+    <td class="r"><span class="btn sm">Upraviť</span></td></tr>`; }).join("")
+    : `<tr><td colspan="4" class="empty">Zatiaľ žiadne zákazky.</td></tr>`}</tbody></table></div>`;
+};
+let pMap = null, pMarker = null, pCircle = null;
+function openProject(id) {
+  const p = project(id) || {name: "", address: "", lat: null, lng: null, radius: null, budget: null, active: true, note: ""};
+  modal(id ? p.name : "Nová zákazka", `<form class="form" data-form="project" data-id="${id || ""}">
+    <div class="field full"><label for="pName">Názov</label><input id="pName" required value="${esc(p.name)}" placeholder="napr. Bytový dom Tomášikova"></div>
+    <div class="field full"><label for="pAddr">Adresa</label><div class="bar"><input id="pAddr" value="${esc(p.address)}" style="flex:1"><button type="button" class="btn" data-act="geo">Nájsť na mape</button></div><span class="hint">Alebo klikni do mapy na miesto stavby.</span></div>
+    <div class="full"><div id="pMap" class="map" style="height:300px"></div><input type="hidden" id="pLat" value="${p.lat ?? ""}"><input type="hidden" id="pLng" value="${p.lng ?? ""}"></div>
+    <div class="field"><label for="pRadius">Okruh (m)</label><input id="pRadius" type="number" min="50" max="5000" step="50" value="${p.radius ?? ""}" placeholder="${C.default_radius}"><span class="hint">V tomto okruhu appka zákazku vyberie sama</span></div>
+    <div class="field"><label for="pBudget">Rozpočet na prácu €</label><input id="pBudget" type="number" min="0" step="1" value="${p.budget ?? ""}"><span class="hint">Upozorní pri ${C.budget_warn_pct} % a pri prekročení</span></div>
+    <div class="field full"><label for="pNote">Poznámka</label><input id="pNote" value="${esc(p.note)}"></div>
+    <label class="check full"><input type="checkbox" id="pActive" ${p.active ? "checked" : ""}><div><b>Aktívna</b><span>Ukončená zákazka sa pracovníkom v appke neponúka.</span></div></label>
+  </form>`, `${id ? `<button class="btn danger" data-act="project-del" data-id="${id}">Zmazať</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="project-save">Uložiť</button>`, true);
+  pMap = L.map("pMap");
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "© OpenStreetMap"}).addTo(pMap);
+  pMarker = pCircle = null;
+  if (p.lat != null) { setPoint(p.lat, p.lng); pMap.setView([p.lat, p.lng], 16); } else pMap.setView([48.15, 17.11], 11);
+  pMap.on("click", ev => setPoint(ev.latlng.lat, ev.latlng.lng));
+  setTimeout(() => pMap && pMap.invalidateSize(), 50);
+}
+function setPoint(lat, lng) {
+  $("#pLat").value = lat; $("#pLng").value = lng;
+  const r = +$("#pRadius").value || C.default_radius;
+  if (!pMarker) { pMarker = L.marker([lat, lng], {draggable: true}).addTo(pMap); pMarker.on("dragend", () => { const l = pMarker.getLatLng(); setPoint(l.lat, l.lng); }); }
+  else pMarker.setLatLng([lat, lng]);
+  if (!pCircle) pCircle = L.circle([lat, lng], {radius: r, color: "#F2B705", weight: 2, fillOpacity: .15}).addTo(pMap);
+  else { pCircle.setLatLng([lat, lng]); pCircle.setRadius(r); }
+}
+async function geocode() {
+  const qv = $("#pAddr").value.trim(); if (!qv) return toast("Zadaj adresu", true);
+  try {
+    const r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=sk,cz,at,hu&accept-language=sk&q=" + encodeURIComponent(qv)).then(r => r.json());
+    if (!r.length) return toast("Adresu sa nepodarilo nájsť – klikni do mapy", true);
+    setPoint(+r[0].lat, +r[0].lon); pMap.setView([+r[0].lat, +r[0].lon], 17);
+  } catch (e) { toast("Vyhľadávanie nefunguje – klikni do mapy", true); }
+}
+async function saveProject() {
+  const f = $("[data-form=project]"); const id = f.dataset.id;
+  if (!f.pName.value.trim()) return toast("Zadaj názov", true);
+  const row = {name: f.pName.value.trim(), address: f.pAddr.value.trim() || null, lat: f.pLat.value === "" ? null : +f.pLat.value, lng: f.pLng.value === "" ? null : +f.pLng.value,
+    radius: f.pRadius.value === "" ? null : +f.pRadius.value, budget: f.pBudget.value === "" ? null : +f.pBudget.value, active: f.pActive.checked, note: f.pNote.value.trim() || null};
+  try {
+    const saved = id ? await q(sb.from("projects").update(row).eq("id", id).select().single())
+                     : await q(sb.from("projects").insert({...row, company_id: C.id}).select().single());
+    P = P.filter(p => p.id !== saved.id).concat(saved).sort((a, b) => a.name.localeCompare(b.name, "sk"));
+    closeModal(); toast("Uložené"); go();
+  } catch (e) { toast(errMsg(e), true); }
+}
+
+/* =====================================================================
+   ÚLOHY 0–99
+   ===================================================================== */
+RENDER.ulohy = async main => {
+  main.innerHTML = `<div class="head"><h1>Úlohy</h1></div>
+  <p class="muted" style="margin:0">Pracovník v appke ťukne číslo úlohy (napr. 5 = búranie). Čísla 0–99.</p>
+  <form class="bar card" data-form="task" style="padding:12px"><input id="tNum" type="number" min="0" max="99" placeholder="Číslo" style="width:90px" required aria-label="Číslo"><input id="tName" placeholder="Názov úlohy" required style="flex:1;min-width:180px" aria-label="Názov"><button class="btn accent">+ Pridať</button></form>
+  <div class="tablewrap"><table><thead><tr><th style="width:80px">Číslo</th><th>Názov</th><th>V appke</th><th></th></tr></thead>
+  <tbody>${T.map(t => `<tr><td><b class="num" style="font-family:var(--display);font-size:20px">${t.num}</b></td>
+    <td><input data-task-name="${t.num}" value="${esc(t.name)}" style="width:100%;min-height:34px;border:1px solid transparent;background:transparent;border-radius:8px;padding:4px 8px" aria-label="Názov úlohy ${t.num}"></td>
+    <td><label><input type="checkbox" data-task-active="${t.num}" ${t.active ? "checked" : ""}> ponúkať</label></td>
+    <td class="r"><button class="btn sm danger" data-act="task-del" data-n="${t.num}">Zmazať</button></td></tr>`).join("")}</tbody></table></div>`;
+};
+async function updTask(num, row) {
+  try { await q(sb.from("tasks").update(row).eq("company_id", C.id).eq("num", num)); Object.assign(T.find(t => t.num === num), row); toast("Uložené"); }
+  catch (e) { toast(errMsg(e), true); }
+}
+
+/* =====================================================================
+   SADZBY
+   ===================================================================== */
+RENDER.sadzby = async main => {
+  const opt = (arr, v, t) => arr.map(x => `<option value="${x[v]}">${esc(t(x))}</option>`).join("");
+  main.innerHTML = `<div class="head"><h1>Sadzby</h1></div>
+  <div class="card"><h3>Ako sa počíta cena práce</h3>
+    <p style="margin:6px 0 0">Hodiny × sadzba. Sadzba sa hľadá v tomto poradí:</p>
+    <ol style="margin:6px 0 0;padding-left:20px"><li>Výnimka nižšie – vyhrá najkonkrétnejšia (úloha &gt; zákazka &gt; pracovník)</li><li>Sadzba pracovníka (v karte pracovníka)</li><li>Základná sadzba firmy: <b>${eur(C.default_rate)}/h</b> (mení sa v Nastaveniach)</li></ol></div>
+  <form class="card form" data-form="rate" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end">
+    <div class="field"><label for="rWorker">Pracovník</label><select id="rWorker"><option value="">Všetci</option>${opt(W, "id", w => w.name)}</select></div>
+    <div class="field"><label for="rProject">Zákazka</label><select id="rProject"><option value="">Všetky</option>${opt(P, "id", p => p.name)}</select></div>
+    <div class="field"><label for="rTask">Úloha</label><select id="rTask"><option value="">Všetky</option>${opt(T, "num", t => t.num + " · " + t.name)}</select></div>
+    <div class="field"><label for="rRate">Sadzba €/h</label><input id="rRate" type="number" min="0" step="0.01" required></div>
+    <button class="btn accent" style="min-height:38px">+ Pridať výnimku</button></form>
+  <div class="tablewrap"><table><thead><tr><th>Pracovník</th><th>Zákazka</th><th>Úloha</th><th class="r">Sadzba</th><th></th></tr></thead>
+  <tbody>${R.length ? R.map(r => `<tr><td>${r.worker_id ? esc(wName(r.worker_id)) : `<span class="muted">všetci</span>`}</td><td>${r.project_id ? esc(project(r.project_id)?.name) : `<span class="muted">všetky</span>`}</td>
+    <td>${r.task_num != null ? r.task_num + " · " + esc(taskName(r.task_num)) : `<span class="muted">všetky</span>`}</td><td class="r num"><b>${eur(r.rate)}</b></td>
+    <td class="r"><button class="btn sm danger" data-act="rate-del" data-id="${r.id}">Zmazať</button></td></tr>`).join("")
+    : `<tr><td colspan="5" class="empty">Žiadne výnimky – platí sadzba pracovníka alebo firmy.</td></tr>`}</tbody></table></div>`;
+};
+
+/* =====================================================================
+   NASTAVENIA
+   ===================================================================== */
+RENDER.nastavenia = async main => {
+  main.innerHTML = `<div class="head"><h1>Nastavenia</h1></div>
+  <form class="card form" data-form="settings">
+    <div class="field full"><label for="sName">Názov firmy</label><input id="sName" required value="${esc(C.name)}"></div>
+    <div class="full">
+      <label class="check"><input type="checkbox" id="sGps" ${C.gps_enabled ? "checked" : ""}><div><b>Zaznamenávať polohu (GPS)</b><span>Poloha sa uloží len pri Príchode a Odchode a appka podľa nej sama vyberie zákazku. Každý pracovník musí v appke súhlasiť; bez súhlasu sa záznamy ukladajú bez polohy.</span></div></label>
+      <label class="check"><input type="checkbox" id="sBreaks" ${C.breaks_enabled ? "checked" : ""}><div><b>Prestávky / obed</b><span>V appke sa objaví tlačidlo Prestávka. Čas prestávky sa neráta do odpracovaných hodín.</span></div></label>
+    </div>
+    <div class="field"><label for="sRate">Základná hodinová sadzba €</label><input id="sRate" type="number" min="0" step="0.01" value="${C.default_rate}"></div>
+    <div class="field"><label for="sRadius">Okruh zákazky (m)</label><input id="sRadius" type="number" min="50" max="5000" step="50" value="${C.default_radius}"><span class="hint">Predvolený, dá sa zmeniť pri každej zákazke</span></div>
+    <div class="field"><label for="sHour">Pripomenúť zabudnutý odchod od (hod.)</label><input id="sHour" type="number" min="0" max="23" value="${C.forgot_checkout_hour}"></div>
+    <div class="field"><label for="sMax">Upozorniť po (hodinách v kuse)</label><input id="sMax" type="number" min="1" max="24" value="${C.max_shift_hours}"></div>
+    <div class="field"><label for="sWarn">Upozornenie na rozpočet pri (%)</label><input id="sWarn" type="number" min="1" max="100" value="${C.budget_warn_pct}"></div>
+    <div class="full"><button class="btn primary">Uložiť nastavenia</button></div>
+  </form>
+  <div class="card"><h3>Appka pre pracovníkov</h3><p style="margin:6px 0">Adresa: <a href="${WORKER_APP}" target="_blank" rel="noopener">${WORKER_APP}</a>. Každý pracovník dostane vlastný odkaz v časti Pracovníci.</p></div>`;
+};
+async function saveSettings() {
+  const f = $("[data-form=settings]");
+  const row = {name: f.sName.value.trim(), gps_enabled: f.sGps.checked, breaks_enabled: f.sBreaks.checked, default_rate: +f.sRate.value || 0,
+    default_radius: +f.sRadius.value || 500, forgot_checkout_hour: +f.sHour.value, max_shift_hours: +f.sMax.value, budget_warn_pct: +f.sWarn.value || 80};
+  try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); }
+  catch (e) { toast(errMsg(e), true); }
+}
+
+/* =====================================================================
+   OKNO (modal)
+   ===================================================================== */
+function modal(title, body, foot, wide) {
+  $("#modalRoot").innerHTML = `<div class="scrim" data-act="scrim"><div class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <header><h2>${esc(title)}</h2><button class="btn sm" data-act="close" aria-label="Zavrieť">✕</button></header>
+    <div class="body">${body}</div>${foot ? `<footer>${foot}</footer>` : ""}</div></div>`;
+  const first = $("#modalRoot input:not([type=hidden]):not([readonly]),#modalRoot select"); if (first) first.focus();
+}
+function closeModal() { if (pMap) { pMap.remove(); pMap = null; } $("#modalRoot").innerHTML = ""; }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#modalRoot").innerHTML) closeModal(); });
+
+/* =====================================================================
+   UDALOSTI
+   ===================================================================== */
+document.addEventListener("click", async ev => {
+  const el = ev.target.closest("[data-act]"); if (!el) return;
+  const a = el.dataset.act, id = el.dataset.id;
+  if (a === "scrim") { if (ev.target === el) closeModal(); return; }
+  if (ev.target.closest("a[href^=http],a[href^=sms]")) return;
+  if (a !== "copy") ev.preventDefault();
+  try {
+    switch (a) {
+      case "auth-tab": authTab = el.dataset.t; renderAuth(); break;
+      case "reset-pass": { const em = $("#fEmail").value.trim(); if (!em) return toast("Zadaj e-mail", true);
+        await q(sb.auth.resetPasswordForEmail(em, {redirectTo: location.href.split("#")[0]})); renderAuth({t: "Poslali sme e-mail na zmenu hesla."}); break; }
+      case "logout": await sb.auth.signOut(); USER = null; C = null; renderAuth(); break;
+      case "close": closeModal(); break;
+      case "entry": await openEntry(id); break;
+      case "entry-new": if (!W.length) return toast("Najprv pridaj pracovníka", true); await openEntry(null); break;
+      case "entry-save": await saveEntry(); break;
+      case "entry-del": if (!confirm("Naozaj zmazať tento záznam?")) return;
+        await q(sb.from("entries").delete().eq("id", id)); cache.range = null; closeModal(); toast("Zmazané"); go(); break;
+      case "rep-tab": repTab = el.dataset.t; go(); break;
+      case "xlsx": exportXlsx(); break;
+      case "pdf": window.print(); break;
+      case "worker": openWorker(id); break;
+      case "worker-new": openWorker(null); break;
+      case "worker-save": await saveWorker(); break;
+      case "invite": ev.stopPropagation(); openInvite(id); break;
+      case "copy": try { await navigator.clipboard.writeText(el.dataset.v); toast("Skopírované – vlož do správy"); } catch (e) { $("#iLink").select(); toast("Skopíruj odkaz ručne", true); } break;
+      case "new-code": { if (!confirm("Vytvoriť nový kód? Starý kód prestane platiť a mobil, v ktorom je pracovník prihlásený, sa odhlási.")) return;
+        const code = await q(sb.rpc("new_invite_code", {p_worker: id})); Object.assign(worker(id), {invite_code: code, user_id: null}); openInvite(id); break; }
+      case "absence-del": await q(sb.from("absences").delete().eq("id", id)); A = A.filter(x => x.id !== id); openWorker(el.dataset.w); break;
+      case "project": openProject(id); break;
+      case "project-new": openProject(null); break;
+      case "project-save": await saveProject(); break;
+      case "project-del": if (!confirm("Zmazať zákazku? Záznamy dochádzky ostanú, ale budú bez zákazky (Iné). Radšej ju označ ako ukončenú.")) return;
+        await q(sb.from("projects").delete().eq("id", id)); P = P.filter(p => p.id !== id); cache.range = null; closeModal(); go(); break;
+      case "geo": await geocode(); break;
+      case "task-del": if (!confirm("Zmazať úlohu " + el.dataset.n + "? Staré záznamy si číslo ponechajú. Radšej ju môžeš len prestať ponúkať.")) return;
+        await q(sb.from("tasks").delete().eq("company_id", C.id).eq("num", +el.dataset.n)); T = T.filter(t => t.num !== +el.dataset.n); go(); break;
+      case "rate-del": await q(sb.from("rates").delete().eq("id", id)); R = R.filter(r => r.id !== id); go(); break;
+    }
+  } catch (e) { toast(errMsg(e), true); console.error(e); }
+});
+document.addEventListener("submit", async ev => {
+  ev.preventDefault(); const f = ev.target, k = f.dataset.form;
+  try {
+    if (k === "login") await doLogin(f);
+    else if (k === "signup") await doSignup(f);
+    else if (k === "company") await doCreateCompany(f);
+    else if (k === "settings") await saveSettings();
+    else if (k === "worker") await saveWorker();
+    else if (k === "project") await saveProject();
+    else if (k === "entry") await saveEntry();
+    else if (k === "task") {
+      const row = {company_id: C.id, num: +f.tNum.value, name: f.tName.value.trim()};
+      const t = await q(sb.from("tasks").insert(row).select().single()); T = T.concat(t).sort((a, b) => a.num - b.num); go();
+    } else if (k === "rate") {
+      const row = {company_id: C.id, worker_id: f.rWorker.value || null, project_id: f.rProject.value || null, task_num: f.rTask.value === "" ? null : +f.rTask.value, rate: +f.rRate.value};
+      if (!row.project_id && row.task_num == null) return toast("Vyber zákazku alebo úlohu. Sadzbu pracovníka nastavíš v jeho karte.", true);
+      const r = await q(sb.from("rates").insert(row).select().single()); R = R.concat(r); go();
+    } else if (k === "absence") {
+      const row = {company_id: C.id, worker_id: f.dataset.id, kind: f.aKind.value, date_from: f.aFrom.value, date_to: f.aTo.value, note: f.aNote.value.trim() || null};
+      if (row.date_to < row.date_from) return toast("Dátum do musí byť po dátume od", true);
+      const r = await q(sb.from("absences").insert(row).select().single()); A = [r, ...A]; openWorker(f.dataset.id); toast("Pridané");
+    }
+  } catch (e) { toast(errMsg(e), true); console.error(e); }
+});
+document.addEventListener("change", async ev => {
+  const t = ev.target;
+  if (t.id === "fMonth") { flt.month = t.value || curMonth(); go(); }
+  else if (t.id === "fWorker") { flt.worker = t.value; go(); }
+  else if (t.id === "fProject") { flt.project = t.value; go(); }
+  else if (t.id === "fEdited") { flt.edited = t.checked; go(); }
+  else if (t.id === "pRadius" && pCircle) pCircle.setRadius(+t.value || C.default_radius);
+  else if (t.dataset.taskName) updTask(+t.dataset.taskName, {name: t.value.trim()});
+  else if (t.dataset.taskActive) updTask(+t.dataset.taskActive, {active: t.checked});
+});
+
+/* =====================================================================
+   ŠTART
+   ===================================================================== */
+async function start() {
+  const {data} = await sb.auth.getSession();
+  USER = data.session?.user || null;
+  if (!USER || USER.is_anonymous) { USER = null; renderAuth(); return; }
+  await loadBase();
+  if (!C) { renderAuth(); return; }
+  $("#auth").hidden = true; $("#shell").hidden = false;
+  go();
+}
+start().catch(e => { renderAuth({t: errMsg(e), err: true}); });
+</script>
+</body>
+</html>

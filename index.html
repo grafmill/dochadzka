@@ -163,10 +163,16 @@ button{cursor:pointer}
 .demo h4{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .day{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
 .day:first-child{border-top:0}
+.login{display:flex;flex-direction:column;gap:14px;padding-top:6vh}
+.login h1{font-family:var(--display);font-size:40px;margin:0;line-height:1}
+.codein{font-family:var(--display);font-size:34px;font-weight:700;letter-spacing:.14em;text-align:center;text-transform:uppercase;min-height:64px;border-radius:14px;border:2px solid var(--line);background:var(--surface);width:100%}
+.err{color:var(--flag);font-weight:600;margin:0}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:40;font-weight:600;max-width:90%;text-align:center}
 </style>
 
 <div class="wrap" id="app"></div>
+<script src="config.js"></script>
+<script src="vendor/supabase-2.117.2.js"></script>
 <div id="sheetRoot"></div>
 <div class="toast" id="toast" hidden></div>
 <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
@@ -193,25 +199,45 @@ const DEMO = {
     [40,"Betonáž"],[41,"Armovanie"],[50,"Nákup materiálu"],[99,"Oprava reklamácie"]
   ].map(([num,name])=>({num,name}))
 };
-const API_URL = null; // sem príde adresa servera; zatiaľ sa odosielanie len simuluje
+/* Server: Supabase (adresa a verejný kľúč v config.js). mode: null = neprihlásený, "live" = ostrá prevádzka, "demo" = ukážka bez servera */
+const CFG = window.DOCHADZKA||null;
+const sb = (CFG&&window.supabase) ? supabase.createClient(CFG.supabaseUrl,CFG.supabaseKey) : null;
 const KEY = "dochadzka.v1";
 
 let S = load();
 function freshState(){
-  return { company:DEMO.company, worker:DEMO.worker, projects:DEMO.projects, tasks:DEMO.tasks,
+  return { mode:"demo", company:DEMO.company, worker:DEMO.worker, projects:DEMO.projects, tasks:DEMO.tasks,
     gpsConsent:null, entries:[], outbox:[], last:{projectId:"p1", taskNum:5, recentTasks:[5,8,7,3]},
     demo:{ offline:false, simLoc:"p2" } };
+}
+function freshLive(workerId){
+  return { mode:"live", workerId, companyId:null, company:{name:"",gpsEnabled:false,breaksEnabled:false,defaultRadius:500,forgotCheckoutHour:18,maxShiftHours:12},
+    worker:{id:workerId,name:"",type:"TPP"}, projects:[], tasks:[{num:0,name:"Nezaradené"}],
+    gpsConsent:null, entries:[], outbox:[], last:{projectId:null, taskNum:0, recentTasks:[]}, pulledAt:0 };
 }
 function load(){
   let s=null;
   try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-  if(!s||!s.worker){ s=freshState(); seed(s); }
+  if(s&&s.worker&&!s.mode) s.mode="demo";          // stará verzia appky = ukážka
+  if(!s||!s.mode) s={mode:null};
   return s;
 }
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
-function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(S)); }
+  catch(e){ prunePhotos(0); try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e2){ toast("V mobile je málo miesta"); } }
+}
+// odoslané fotky starších záznamov netreba držať v mobile
+function prunePhotos(days){
+  const lim=Date.now()-days*864e5;
+  S.entries&&S.entries.forEach(e=>{ if(e.start<lim&&e.photoPaths) e.photos=e.photos.map((p,i)=>e.photoPaths[i]?null:p); });
+}
+function uid(){
+  if(window.crypto&&crypto.randomUUID) return crypto.randomUUID();
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^Math.random()*16>>c/4).toString(16));
+}
+const live=()=>S.mode==="live";
 function at(dayOffset,h,m){ const d=new Date(); d.setDate(d.getDate()+dayOffset); d.setHours(h,m,0,0); return d.getTime(); }
-function mk(o){ return Object.assign({id:uid(),workerId:"w1",projectId:null,otherText:"",taskNum:0,note:"",photos:[],start:0,end:null,
+function mk(o){ return Object.assign({id:uid(),workerId:S.worker?S.worker.id:"w1",projectId:null,otherText:"",taskNum:0,note:"",photos:[],photoPaths:[],start:0,end:null,
   startOrig:null,endOrig:null,edited:false,gpsStart:null,gpsEnd:null,breaks:[],synced:true},o); }
 function seed(s){
   // ukážková história, aby bolo vidieť prehľad
@@ -239,6 +265,9 @@ function worked(e,now=Date.now()){
   return Math.max(0,ms);
 }
 const proj=id=>S.projects.find(p=>p.id===id);
+const activeProjects=()=>S.projects.filter(p=>p.active!==false);
+const activeTasks=()=>S.tasks.filter(t=>t.active!==false);
+const hasPos=p=>p&&p.lat!=null&&p.lng!=null;
 const task=n=>S.tasks.find(t=>t.num===n);
 const projName=e=>e.projectId?(proj(e.projectId)?.name||"?"):("Iné"+(e.otherText?": "+e.otherText:""));
 const taskName=n=>{const t=task(n);return t?t.name:"Úloha "+n;};
@@ -266,7 +295,7 @@ const ICON={
 let lastPos=null;
 function getPos(){
   return new Promise(res=>{
-    const sim=()=>{ const p=proj(S.demo.simLoc); res(p?{lat:p.lat+0.0007,lng:p.lng-0.0005,acc:15,sim:true}:{lat:48.20,lng:17.40,acc:30,sim:true}); };
+    const sim=()=>{ if(live()) return res(null); const p=proj(S.demo.simLoc); res(p?{lat:p.lat+0.0007,lng:p.lng-0.0005,acc:15,sim:true}:{lat:48.20,lng:17.40,acc:30,sim:true}); };
     if(!navigator.geolocation) return sim();
     let done=false; const t=setTimeout(()=>{ if(!done){done=true;sim();} },6000);
     try{
@@ -279,7 +308,7 @@ function getPos(){
 }
 function nearest(pos){
   let best=null;
-  S.projects.forEach(p=>{ const d=distM(pos,p); if(d<=(p.radius||S.company.defaultRadius)&&(!best||d<best.d)) best={p,d}; });
+  activeProjects().filter(hasPos).forEach(p=>{ const d=distM(pos,p); if(d<=(p.radius||S.company.defaultRadius)&&(!best||d<best.d)) best={p,d}; });
   return best;
 }
 
@@ -289,11 +318,12 @@ function nearest(pos){
 let draft=null; // {projectId, otherText, taskNum, note, photos, source:'gps'|'last'|'manual'}
 let switching=false;
 async function prepareDraft(){
-  draft={projectId:S.last.projectId,otherText:"",taskNum:S.last.taskNum,note:"",photos:[],source:gpsOn()?"locating":"last"};
+  let pid=S.last.projectId; if(pid&&!activeProjects().some(p=>p.id===pid)) pid=activeProjects()[0]?.id??null;
+  draft={projectId:pid,otherText:"",taskNum:task(S.last.taskNum)?S.last.taskNum:0,note:"",photos:[],source:gpsOn()?"locating":"last"};
   render();
   if(gpsOn()){
     lastPos=await getPos();
-    const n=nearest(lastPos);
+    const n=lastPos?nearest(lastPos):null;
     if(draft.source==="locating"){
       if(n){ draft.projectId=n.p.id; draft.source="gps"; } else draft.source="nogps";
     }
@@ -305,16 +335,108 @@ async function prepareDraft(){
    AKCIE
    ====================================================================== */
 function queue(e){ e.synced=false; if(!S.outbox.includes(e.id)) S.outbox.push(e.id); save(); sync(); }
-function online(){ return navigator.onLine!==false && !S.demo.offline; }
+function online(){ return navigator.onLine!==false && !(S.demo&&S.demo.offline); }
+async function q(p){ const {data,error}=await p; if(error) throw error; return data; }
+const iso=v=>v==null?null:new Date(v).toISOString();
+const msOf=v=>v==null?null:Date.parse(v);
+function toRow(e){
+  return { id:e.id, company_id:S.companyId, worker_id:S.workerId, project_id:e.projectId, other_text:e.otherText||"", task_num:e.taskNum,
+    note:e.note||"", photos:(e.photoPaths||[]).filter(Boolean), start_at:iso(e.start), end_at:iso(e.end), start_orig:iso(e.startOrig), end_orig:iso(e.endOrig),
+    edited:!!e.edited, gps_start:e.gpsStart, gps_end:e.gpsEnd, breaks:e.breaks||[] };
+}
+function fromRow(r,old){
+  return { id:r.id, workerId:r.worker_id, projectId:r.project_id, otherText:r.other_text||"", taskNum:r.task_num, note:r.note||"",
+    photos:old?old.photos:[], photoPaths:r.photos||[], start:msOf(r.start_at), end:msOf(r.end_at), startOrig:msOf(r.start_orig), endOrig:msOf(r.end_orig),
+    edited:r.edited, gpsStart:r.gps_start, gpsEnd:r.gps_end, breaks:r.breaks||[], synced:true };
+}
+async function uploadPhotos(e){
+  e.photoPaths=e.photoPaths||[];
+  for(let i=0;i<e.photos.length;i++){
+    if(e.photoPaths[i]||!e.photos[i]) continue;
+    const path=`${S.companyId}/${S.workerId}/${e.id}/${i}-${Date.now().toString(36)}.jpg`;
+    const blob=await (await fetch(e.photos[i])).blob();
+    const {error}=await sb.storage.from("fotky").upload(path,blob,{contentType:"image/jpeg",upsert:false});
+    if(error&&!/exists|Duplicate/i.test(error.message)) throw error;
+    e.photoPaths[i]=path; save();
+  }
+}
+let syncing=false, lastErr="";
 async function sync(){
-  if(!online()||!S.outbox.length){ renderSync(); return; }
+  if(syncing) return;
+  if(!online()||!S.outbox.length||(live()&&!sb)){ renderSync(); return; }
+  syncing=true; renderSync();
   const batch=S.outbox.map(id=>S.entries.find(e=>e.id===id)).filter(Boolean);
   try{
-    if(API_URL){ await fetch(API_URL+"/entries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(batch)}); }
-    batch.forEach(e=>e.synced=true); S.outbox=[]; save();
-  }catch(err){}
-  renderSync();
+    if(live()){
+      for(const e of batch) await uploadPhotos(e);
+      await q(sb.from("entries").upsert(batch.map(toRow)));
+    }
+    batch.forEach(e=>e.synced=true); S.outbox=S.outbox.filter(id=>!batch.some(e=>e.id===id)); lastErr=""; save();
+  }catch(err){ lastErr=String(err&&err.message||err); console.warn("sync",err); }
+  syncing=false; renderSync();
 }
+// stiahne nastavenia firmy, zákazky, úlohy a vlastné záznamy (napr. opravy od zamestnávateľa)
+async function pull(){
+  if(!live()||!sb||!online()) return;
+  try{
+    const me=await q(sb.from("workers").select("id,name,type,gps_consent,company_id").eq("id",S.workerId));
+    if(!me.length){ S.loggedOut=true; save(); render(); return; }
+    const w=me[0]; S.loggedOut=false;
+    const since=new Date(Date.now()-40*864e5).toISOString();
+    const [c,ps,ts,es]=await Promise.all([
+      q(sb.from("companies").select("*").eq("id",w.company_id).single()),
+      q(sb.from("projects").select("id,name,address,lat,lng,radius,active").eq("company_id",w.company_id).order("name")),
+      q(sb.from("tasks").select("num,name,active").eq("company_id",w.company_id).order("num")),
+      q(sb.from("entries").select("*").eq("worker_id",w.id).gte("start_at",since).order("start_at"))
+    ]);
+    S.companyId=w.company_id; S.worker={id:w.id,name:w.name,type:w.type};
+    if(S.gpsConsent===null||w.gps_consent!==null) S.gpsConsent=w.gps_consent;
+    S.company={name:c.name,gpsEnabled:c.gps_enabled,breaksEnabled:c.breaks_enabled,defaultRadius:c.default_radius,forgotCheckoutHour:c.forgot_checkout_hour,maxShiftHours:c.max_shift_hours};
+    S.projects=ps.map(p=>({...p,address:p.address||""})); S.tasks=ts.length?ts:[{num:0,name:"Nezaradené"}];
+    const byId=new Map(S.entries.map(e=>[e.id,e])), seen=new Set();
+    es.forEach(r=>{ seen.add(r.id); if(S.outbox.includes(r.id)) return; byId.set(r.id,fromRow(r,byId.get(r.id))); });
+    // záznamy, ktoré zamestnávateľ zmazal
+    const lim=Date.parse(since);
+    byId.forEach((e,id)=>{ if(!seen.has(id)&&!S.outbox.includes(id)&&e.start>=lim) byId.delete(id); });
+    S.entries=[...byId.values()].sort((a,b)=>a.start-b.start);
+    S.pulledAt=Date.now(); prunePhotos(3); save();
+    if(!openEntry()&&!switching) draft=null;
+    render();
+  }catch(err){ console.warn("pull",err); }
+}
+
+/* prihlásenie kódom od zamestnávateľa */
+let loginErr="", loginBusy=false;
+async function claim(code){
+  if(!sb){ loginErr="Appka nemá nastavený server."; render(); return; }
+  loginBusy=true; loginErr=""; render();
+  try{
+    const {data}=await sb.auth.getSession();
+    if(!data.session) await q(sb.auth.signInAnonymously());
+    const wid=await q(sb.rpc("claim_invite",{p_code:code}));
+    const keep=(live()&&S.workerId===wid)?S:null;   // ten istý pracovník – neodoslané záznamy ostávajú
+    S=keep||freshLive(wid); S.loggedOut=false; save();
+    draft=null; switching=false;
+    await pull(); sync();
+    toast("Prihlásený: "+S.worker.name);
+  }catch(e){
+    const m=String(e&&e.message||e);
+    loginErr=/Neplatný kód/.test(m)?"Kód nesedí. Skontroluj ho alebo si vypýtaj nový.":/anonymous/i.test(m)?"Server nemá povolené prihlásenie pracovníkov (Anonymous sign-ins). Daj vedieť zamestnávateľovi.":/fetch|network/i.test(m)?"Bez pripojenia na internet. Skús to znova so signálom.":m;
+  }
+  loginBusy=false; render();
+}
+function loginHtml(){
+  return `<div class="login">
+    <h1>Dochádzka</h1>
+    ${S.loggedOut?`<p class="err">Zamestnávateľ ťa z tohto mobilu odhlásil. Zadaj nový kód.</p>`:""}
+    <p style="margin:0">Zadaj kód, ktorý ti poslal zamestnávateľ. Stačí raz, potom ostaneš prihlásený.</p>
+    <input class="codein" id="codeIn" maxlength="9" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="ABCD-1234" aria-label="Kód od zamestnávateľa" value="${esc(pendingCode)}">
+    ${loginErr?`<p class="err">${esc(loginErr)}</p>`:""}
+    <button class="bigbtn go" data-act="claim" ${loginBusy?"disabled":""}>${loginBusy?"Prihlasujem…":"Prihlásiť"}</button>
+    ${S.mode!=="live"?`<button class="secbtn" data-act="demo">Len vyskúšať (ukážka bez servera)</button>`:""}
+  </div>`;
+}
+let pendingCode="";
 async function checkIn(){
   if(draft.projectId===null && !draft.otherText.trim()){ openProjectSheet(true); return; }
   const now=Date.now();
@@ -355,13 +477,14 @@ function todayMs(){ return S.entries.filter(e=>isToday(e.start)).reduce((a,e)=>a
    ====================================================================== */
 let reminderDismissed=false;
 function render(){
+  if(!S.mode||(live()&&S.loggedOut)){ $("#app").innerHTML=loginHtml(); return; }
   const e=openEntry(); const brk=onBreak(e);
   const today=S.entries.filter(x=>isToday(x.start)).sort((a,b)=>a.start-b.start);
   const tMs=todayMs(), {h,m}=dur(tMs);
   const weekMs=S.entries.filter(x=>sameWeek(x.start)).reduce((a,x)=>a+worked(x),0);
   let html=`
   <div class="top">
-    <div class="who"><b>${esc(S.worker.name)}</b><span>${esc(S.company.name)} · ${S.worker.type==="TPP"?"TPP":"živnostník"}</span></div>
+    <div class="who"><b>${esc(S.worker.name)}</b><span>${esc(S.company.name)} · ${S.worker.type==="TPP"?"TPP":"živnostník"}${S.mode==="demo"?" · ukážka":""}</span></div>
     <div class="sync" id="sync"></div>
     <button class="iconbtn" aria-label="Nastavenia" data-act="settings">${ICON.gear}</button>
   </div>
@@ -390,9 +513,9 @@ function render(){
     let srcTag="";
     if(draft.source==="locating") srcTag=`<span class="tag">${ICON.pin} hľadám polohu…</span>`;
     else if(draft.source==="gps") srcTag=`<span class="tag gps">${ICON.pin} podľa polohy${lastPos&&lastPos.sim?" (ukážka)":""}</span>`;
-    else if(draft.source==="nogps") srcTag=`<span class="tag">${ICON.pin} mimo zákaziek · naposledy</span>`;
+    else if(draft.source==="nogps") srcTag=`<span class="tag">${ICON.pin} ${lastPos?"mimo zákaziek":"poloha nedostupná"} · naposledy</span>`;
     else if(draft.source==="last") srcTag=`<span class="tag">${ICON.clock} naposledy</span>`;
-    const recents=S.last.recentTasks.filter(n=>task(n));
+    const recents=S.last.recentTasks.filter(n=>{const t=task(n);return t&&t.active!==false;});
     html+=`<section class="card" style="display:flex;flex-direction:column;gap:12px">
       ${consentHtml()}
       <button class="pick" data-act="pick-project">
@@ -446,8 +569,9 @@ function bannersHtml(e){
 function renderSync(){
   const el=$("#sync"); if(!el) return;
   const n=S.outbox.length, on=online();
-  el.className="sync"+(on?"":" off");
-  el.innerHTML=`<span class="dot"></span>${on?(n?"Odosielam…":"Odoslané"):("Bez signálu"+(n?" · čaká "+n:""))}`;
+  el.className="sync"+(on&&!(n&&lastErr)?"":" off");
+  el.title=lastErr;
+  el.innerHTML=`<span class="dot"></span>${!on?("Bez signálu"+(n?" · čaká "+n:"")):n?(lastErr&&!syncing?"Čaká "+n:"Odosielam…"):"Odoslané"}`;
 }
 
 /* ======================================================================
@@ -463,12 +587,12 @@ function closeSheet(){ $("#sheetRoot").innerHTML=""; }
 
 function openProjectSheet(focusOther){
   const pos=lastPos;
-  const rows=S.projects.map(p=>{ const d=pos&&gpsOn()?distM(pos,p):null; return {p,d}; })
-    .sort((a,b)=>(a.d??0)-(b.d??0));
+  const rows=activeProjects().map(p=>{ const d=pos&&gpsOn()&&hasPos(p)?distM(pos,p):null; return {p,d}; })
+    .sort((a,b)=>(a.d??1e9)-(b.d??1e9));
   sheet("Zákazka",`
     ${rows.map(({p,d})=>`<button class="opt" aria-pressed="${draft.projectId===p.id}" data-act="set-project" data-id="${p.id}">
       <div class="grow"><b>${esc(p.name)}</b><span>${esc(p.address)}</span></div>
-      ${d!=null?`<span class="dist ${d<=p.radius?"in":""}">${fmtDist(d)}</span>`:""}</button>`).join("")}
+      ${d!=null?`<span class="dist ${d<=(p.radius||S.company.defaultRadius)?"in":""}">${fmtDist(d)}</span>`:""}</button>`).join("")}
     <div class="field"><label for="otherText">Iné (sklad, nákup, iná práca…)</label>
       <input id="otherText" placeholder="napr. Sklad Senec" value="${esc(draft.projectId===null?draft.otherText:"")}"></div>
     <button class="btn primary" data-act="set-other" style="min-height:52px">Použiť „Iné“</button>
@@ -483,12 +607,12 @@ function openTaskSheet(){
     <div class="keypad">${[1,2,3,4,5,6,7,8,9,0].map(n=>`<button data-act="key" data-k="${n}">${n}</button>`).join("")}
       <button class="wide" data-act="key" data-k="del">Zmazať</button><button class="wide" data-act="key" data-k="ok" style="grid-column:span 3;background:var(--go);color:var(--go-ink);border-color:var(--go)">Potvrdiť</button></div>
     <div class="sect"><span>Všetky úlohy</span></div>
-    ${S.tasks.map(t=>`<button class="opt" aria-pressed="${draft.taskNum===t.num}" data-act="set-task" data-n="${t.num}"><span class="tasknum num">${t.num}</span><div class="grow"><b>${esc(t.name)}</b></div></button>`).join("")}
+    ${activeTasks().map(t=>`<button class="opt" aria-pressed="${draft.taskNum===t.num}" data-act="set-task" data-n="${t.num}"><span class="tasknum num">${t.num}</span><div class="grow"><b>${esc(t.name)}</b></div></button>`).join("")}
   `); renderTyped();
 }
 function renderTyped(){
   const el=$("#typed"); if(!el) return;
-  const t=typed===""?null:task(+typed);
+  const t=typed===""?null:activeTasks().find(x=>x.num===+typed);
   el.innerHTML=`<span class="tasknum num">${typed===""?"–":typed}</span><span class="name ${t?"":"none"}">${typed===""?"Ťukni číslo úlohy":(t?esc(t.name):"Úloha s týmto číslom neexistuje")}</span>`;
 }
 function openNoteSheet(target){
@@ -508,7 +632,7 @@ function openEditSheet(id){
     </div>
     ${e.end===null&&isToday(e.start)?`<p class="hint">Odchod nechaj prázdny, ak ešte pracuješ.</p>`:""}
     <p class="hint">Zmenu uvidí zamestnávateľ ako upravený záznam. Pôvodný čas ostáva uložený.</p>
-    ${e.photos.length?`<div class="thumbs">${e.photos.map(s=>`<img src="${s}" alt="Fotka k záznamu">`).join("")}</div>`:""}
+    ${e.photos.some(Boolean)?`<div class="thumbs">${e.photos.filter(Boolean).map(s=>`<img src="${s}" alt="Fotka k záznamu">`).join("")}</div>`:(e.photoPaths||[]).length?`<p class="hint">Fotky: ${e.photoPaths.length} (odoslané)</p>`:""}
     <button class="bigbtn go" style="min-height:58px;font-size:22px" data-act="save-edit">Uložiť</button>`);
 }
 function saveEdit(){
@@ -522,7 +646,7 @@ function saveEdit(){
   if(Math.abs(ns-e.start)>=60000){ if(e.startOrig==null) e.startOrig=e.start; e.start=ns; ch=true; }
   if(ne!==e.end && !(ne!==null&&e.end!==null&&Math.abs(ne-e.end)<60000)){
     if(e.end!==null&&e.endOrig==null) e.endOrig=e.end;
-    if(e.end===null&&ne!==null) e.endOrig=null;
+    if(e.end===null&&ne!==null) e.endOrig=Date.now();   // odchod zadaný ručne – pôvodný = kedy ho zadal
     e.end=ne; ch=true; e.breaks.forEach(b=>{ if(b.end===null&&ne!==null) b.end=ne; });
   }
   if(ch){ e.edited=true; queue(e); toast("Čas upravený"); }
@@ -530,6 +654,14 @@ function saveEdit(){
 }
 function openSettings(){
   const c=S.company;
+  if(live()){
+    sheet("Nastavenia",`
+    ${c.gpsEnabled?`<div class="toggle"><div class="grow"><b>Súhlas s polohou</b><span>Poloha sa zapíše len pri Príchode a Odchode.</span></div><input type="checkbox" class="sw" id="swConsent" ${S.gpsConsent?"checked":""}></div>`:`<p class="hint">Zamestnávateľ nemá zapnuté zaznamenávanie polohy.</p>`}
+    <p class="hint">${esc(S.worker.name)} · ${esc(c.name)}<br>${S.outbox.length?"Čaká na odoslanie: "+S.outbox.length+" záznamov":"Všetko odoslané"}${S.pulledAt?" · aktualizované "+hm(S.pulledAt):""}${lastErr?"<br>Chyba: "+esc(lastErr):""}</p>
+    <button class="btn" data-act="refresh">Aktualizovať teraz</button>
+    <button class="btn" data-act="logout">Odhlásiť z tohto mobilu</button>`);
+    return;
+  }
   sheet("Nastavenia",`
     ${c.gpsEnabled?`<div class="toggle"><div class="grow"><b>Súhlas s polohou</b><span>Poloha sa zapíše len pri Príchode a Odchode.</span></div><input type="checkbox" class="sw" id="swConsent" ${S.gpsConsent?"checked":""}></div>`:`<p class="hint">Zamestnávateľ nemá zapnuté zaznamenávanie polohy.</p>`}
     <div class="demo">
@@ -545,7 +677,8 @@ function openSettings(){
         <select id="selLoc">${S.projects.map(p=>`<option value="${p.id}" ${S.demo.simLoc===p.id?"selected":""}>Pri: ${esc(p.name)}</option>`).join("")}<option value="none" ${S.demo.simLoc==="none"?"selected":""}>Mimo všetkých zákaziek</option></select></div>
       <div class="toggle"><div class="grow"><b>Simulovať výpadok signálu</b><span>Záznamy sa uložia a odošlú neskôr</span></div><input type="checkbox" class="sw" id="swOff" ${S.demo.offline?"checked":""}></div>
       <button class="btn" data-act="reset">Vymazať všetko a začať odznova</button>
-    </div>`);
+    </div>
+    ${sb?`<button class="btn primary" data-act="to-login">Prihlásiť sa kódom od zamestnávateľa</button>`:""}`);
 }
 function openHistory(){
   const days={};
@@ -595,9 +728,9 @@ document.addEventListener("click",ev=>{
     case "set-task": draft.taskNum=+el.dataset.n; closeSheet(); render(); break;
     case "key": { const k=el.dataset.k;
       if(k==="del") typed=typed.slice(0,-1);
-      else if(k==="ok"){ if(typed!==""&&task(+typed)){ draft.taskNum=+typed; closeSheet(); render(); } else toast("Zadaj platné číslo úlohy"); return; }
+      else if(k==="ok"){ if(typed!==""&&activeTasks().some(t=>t.num===+typed)){ draft.taskNum=+typed; closeSheet(); render(); } else toast("Zadaj platné číslo úlohy"); return; }
       else typed=(typed.length>=2?"":typed)+k;
-      if(typed.length===2&&task(+typed)){ draft.taskNum=+typed; renderTyped(); setTimeout(()=>{closeSheet();render();},250); return; }
+      if(typed.length===2&&activeTasks().some(t=>t.num===+typed)){ draft.taskNum=+typed; renderTyped(); setTimeout(()=>{closeSheet();render();},250); return; }
       renderTyped(); break; }
     case "note-draft": openNoteSheet("draft"); break;
     case "note-cur": openNoteSheet("cur"); break;
@@ -607,8 +740,14 @@ document.addEventListener("click",ev=>{
     case "edit": openEditSheet(el.dataset.id); break;
     case "save-edit": saveEdit(); break;
     case "dismiss": reminderDismissed=true; render(); break;
-    case "consent-yes": S.gpsConsent=true; save(); prepareDraft(); break;
-    case "consent-no": S.gpsConsent=false; save(); render(); break;
+    case "consent-yes": S.gpsConsent=true; save(); sendConsent(); prepareDraft(); break;
+    case "consent-no": S.gpsConsent=false; save(); sendConsent(); render(); break;
+    case "claim": { const v=$("#codeIn").value; pendingCode=v; if(v.replace(/[^a-z0-9]/gi,"").length!==8){ loginErr="Kód má 8 znakov."; render(); return; } claim(v); break; }
+    case "demo": S=freshState(); seed(S); save(); draft=null; render(); break;
+    case "to-login": closeSheet(); S={mode:null}; save(); draft=null; render(); break;
+    case "refresh": closeSheet(); pull().then(sync); toast("Aktualizujem…"); break;
+    case "logout": if(S.outbox.length&&!confirm("V mobile sú neodoslané záznamy ("+S.outbox.length+"). Po odhlásení sa stratia. Odhlásiť?")) return;
+      closeSheet(); if(sb) sb.auth.signOut().catch(()=>{}); S={mode:null}; save(); draft=null; render(); break;
     case "settings": openSettings(); break;
     case "history": openHistory(); break;
     case "reset": try{localStorage.removeItem(KEY);}catch(e){} S=freshState(); draft=null; switching=false; closeSheet(); render(); toast("Začínaš odznova"); break;
@@ -616,7 +755,8 @@ document.addEventListener("click",ev=>{
 });
 document.addEventListener("change",ev=>{
   const id=ev.target.id;
-  if(id==="swConsent"){ S.gpsConsent=ev.target.checked; }
+  if(id==="swConsent"){ S.gpsConsent=ev.target.checked; sendConsent(); }
+  else if(id==="codeIn"){ pendingCode=ev.target.value; return; }
   else if(id==="swGps"){ S.company={...S.company,gpsEnabled:ev.target.checked}; if(ev.target.checked) S.gpsConsent=null; }
   else if(id==="swBreak"){ S.company={...S.company,breaksEnabled:ev.target.checked}; }
   else if(id==="selType"){ S.worker={...S.worker,type:ev.target.value}; }
@@ -625,11 +765,19 @@ document.addEventListener("change",ev=>{
   else return;
   save(); if(!openEntry()||switching){ draft=null; } render(); sync();
 });
-window.addEventListener("online",sync); window.addEventListener("offline",renderSync);
-setInterval(()=>{ if(!$("#sheetRoot").innerHTML) render(); sync(); },20000);
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ render(); sync(); } });
+function sendConsent(){ if(live()&&sb) sb.rpc("set_gps_consent",{p_consent:S.gpsConsent}).then(({error})=>error&&console.warn(error)); }
+document.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="codeIn"){ ev.preventDefault(); $("[data-act=claim]").click(); } });
+window.addEventListener("online",()=>{ sync(); pull(); }); window.addEventListener("offline",renderSync);
+setInterval(()=>{ if(!S.mode) return; if(!$("#sheetRoot").innerHTML) render(); sync(); },20000);
+setInterval(()=>{ if(live()&&!document.hidden) pull(); },5*60000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&S.mode){ render(); pull().then(sync); } });
 
+// odkaz od zamestnávateľa: ...?kod=ABCD1234
+const urlCode=new URLSearchParams(location.search).get("kod");
+if(urlCode){ history.replaceState(null,"",location.pathname); pendingCode=urlCode; }
 render();
+if(urlCode&&sb) claim(urlCode);
+else if(live()){ pull().then(sync); }
 if("serviceWorker" in navigator && location.protocol==="https:" && !/claude|anthropic/.test(location.hostname)){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
 }
