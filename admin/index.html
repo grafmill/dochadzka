@@ -195,6 +195,7 @@ function errMsg(e) {
   if (/already registered/i.test(m)) return "Tento e-mail je už registrovaný – prihlás sa";
   if (/Password should be/i.test(m)) return "Heslo musí mať aspoň 6 znakov";
   if (/duplicate key.*tasks_pkey/i.test(m)) return "Úloha s týmto číslom už existuje";
+  if (/entries_worker_id_fkey/i.test(m)) return "Pracovník má záznamy dochádzky – nedá sa zmazať, označ ho ako neaktívneho";
   if (/Failed to fetch|NetworkError/i.test(m)) return "Bez pripojenia na server";
   return m;
 }
@@ -378,13 +379,15 @@ RENDER.prehlad = async main => {
     loadBudgetUse()
   ]);
   cache.budget = budget;
-  const nowOpen = open.filter(e => ms(e.start_at) >= today0.getTime());
-  const forgotten = open.filter(e => ms(e.start_at) < today0.getTime());
+  // nočná zmena: zabudnutý je ten, kto je v práci dlhšie ako limit, nie ten, kto prišiel včera
+  const tooLong = e => workedMs(e) > C.max_shift_hours * 36e5;
+  const nowOpen = open.filter(e => !tooLong(e));
+  const forgotten = open.filter(tooLong);
   const todayMs = today.reduce((a, e) => a + workedMs(e), 0);
   const todayCost = today.reduce((a, e) => a + costOf(e), 0);
   const active = W.filter(w => w.active);
   const absentToday = A.filter(a => a.date_from <= dateKey(Date.now()) && a.date_to >= dateKey(Date.now()));
-  const present = new Set(today.map(e => e.worker_id));
+  const present = new Set(today.concat(nowOpen).map(e => e.worker_id));
   const missing = active.filter(w => !present.has(w.id) && !absentToday.some(a => a.worker_id === w.id));
   const editedToday = today.filter(e => e.edited).length;
   const warnP = P.filter(p => p.active && budgetState(p, budget[p.id] || 0)?.cls);
@@ -398,7 +401,7 @@ RENDER.prehlad = async main => {
     <div class="stat"><div class="l">Dnes upravené</div><div class="v num ${editedToday ? "flag" : ""}">${editedToday}</div></div>
   </div>
   ${forgotten.length ? `<div class="card" style="border:2px solid var(--flag)"><h3 class="flag">Zabudnutý odchod</h3>
-    ${forgotten.map(e => `<p style="margin:6px 0">${esc(wName(e.worker_id))} – ${esc(projName(e))}, príchod ${dFull(e.start_at)} ${hm(e.start_at)}, bez odchodu. <button class="btn sm" data-act="entry" data-id="${e.id}">Upraviť</button></p>`).join("")}</div>` : ""}
+    ${forgotten.map(e => `<p style="margin:6px 0">${esc(wName(e.worker_id))} – ${esc(projName(e))}, príchod ${dFull(e.start_at)} ${hm(e.start_at)}, v práci už ${hhmm(workedMs(e))} h bez odchodu. <button class="btn sm" data-act="entry" data-id="${e.id}">Upraviť</button></p>`).join("")}</div>` : ""}
   ${warnP.length ? `<div class="card" style="border:2px solid var(--warn)"><h3 class="warnc">Rozpočet zákazky</h3>
     ${warnP.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u); return `<p style="margin:6px 0"><b>${esc(p.name)}</b>: ${eur(u)} z ${eur(p.budget)} (${Math.round(s.pct)} %)${s.cls === "over" ? ` <span class="tag flag">prekročený</span>` : ""}</p>`; }).join("")}</div>` : ""}
   <h2>Teraz v práci</h2>
@@ -486,7 +489,7 @@ async function openEntry(id) {
     <div class="field"><label for="eWorker">Pracovník</label><select id="eWorker">${W.map(w => `<option value="${w.id}" ${w.id === e.worker_id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
     <div class="field"><label for="eDate">Deň</label><input id="eDate" type="date" value="${dateKey(e.start_at)}" required></div>
     <div class="field"><label for="eStart">Príchod</label><input id="eStart" type="time" value="${timeVal(e.start_at)}" required></div>
-    <div class="field"><label for="eEnd">Odchod</label><input id="eEnd" type="time" value="${e.end_at ? timeVal(e.end_at) : ""}"><span class="hint">Prázdne = ešte v práci</span></div>
+    <div class="field"><label for="eEnd">Odchod</label><input id="eEnd" type="time" value="${e.end_at ? timeVal(e.end_at) : ""}"><span class="hint">Prázdne = ešte v práci. Skorší čas ako príchod = nasledujúci deň.</span></div>
     <div class="field"><label for="eProject">Zákazka</label><select id="eProject">${P.map(p => `<option value="${p.id}" ${p.id === e.project_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}<option value="" ${!e.project_id ? "selected" : ""}>Iné</option></select></div>
     <div class="field"><label for="eOther">Iné – čo / kde</label><input id="eOther" value="${esc(e.other_text)}"></div>
     <div class="field"><label for="eTask">Úloha</label><select id="eTask">${T.map(t => `<option value="${t.num}" ${t.num === e.task_num ? "selected" : ""}>${t.num} · ${esc(t.name)}</option>`).join("")}</select></div>
@@ -507,7 +510,8 @@ async function openEntry(id) {
 async function saveEntry() {
   const f = $("[data-form=entry]"); const id = f.dataset.id, isNew = !!f.dataset.new;
   const d = f.eDate.value; const mk = t => new Date(d + "T" + t + ":00").getTime();
-  const s = mk(f.eStart.value), en = f.eEnd.value ? mk(f.eEnd.value) : null;
+  const s = mk(f.eStart.value); let en = f.eEnd.value ? mk(f.eEnd.value) : null;
+  if (en != null && en <= s) en += 864e5;   // odchod po polnoci (nočná zmena)
   if (en != null && en <= s) return toast("Odchod musí byť po príchode", true);
   const w = worker(f.eWorker.value);
   const row = {worker_id: w.id, company_id: C.id, project_id: f.eProject.value || null, other_text: f.eProject.value ? "" : f.eOther.value.trim(),
@@ -599,16 +603,20 @@ function exportXlsx() {
 /* =====================================================================
    PRACOVNÍCI
    ===================================================================== */
+let showInactive = false;
 RENDER.pracovnici = async main => {
+  const nInactive = W.filter(w => !w.active).length;
+  const list = W.filter(w => w.active || showInactive);
   main.innerHTML = `<div class="head"><h1>Pracovníci</h1><button class="btn accent" data-act="worker-new">+ Pridať pracovníka</button></div>
+  ${nInactive ? `<div class="bar"><label class="tag" style="padding:6px 10px;cursor:pointer"><input type="checkbox" id="fInactive" ${showInactive ? "checked" : ""}> zobraziť neaktívnych (${nInactive})</label></div>` : ""}
   <div class="tablewrap"><table><thead><tr><th>Meno</th><th>Typ</th><th class="r">Sadzba</th><th>Mobil</th><th>Poloha</th><th></th></tr></thead>
-  <tbody>${W.length ? W.map(w => `<tr class="click" data-act="worker" data-id="${w.id}" style="${w.active ? "" : "opacity:.55"}">
+  <tbody>${list.length ? list.map(w => `<tr class="click" data-act="worker" data-id="${w.id}" style="${w.active ? "" : "opacity:.55"}">
     <td><b>${esc(w.name)}</b>${w.active ? "" : ` <span class="tag">neaktívny</span>`}${w.phone ? `<br><span class="small muted">${esc(w.phone)}</span>` : ""}</td>
     <td>${w.type === "TPP" ? "TPP" : "živnostník"}</td>
     <td class="r num">${w.hourly_rate != null ? eur(w.hourly_rate) : `<span class="muted">${eur(C.default_rate)}</span>`}</td>
     <td>${w.user_id ? `<span class="tag go">prihlásený</span>` : `<span class="tag warn">čaká na prihlásenie</span>`}</td>
     <td>${!C.gps_enabled ? `<span class="muted small">vypnutá</span>` : w.gps_consent === true ? `<span class="tag go">súhlasí</span>` : w.gps_consent === false ? `<span class="tag flag">nesúhlasí</span>` : `<span class="muted small">neodpovedal</span>`}</td>
-    <td><button class="btn sm" data-act="invite" data-id="${w.id}">Odkaz do mobilu</button></td></tr>`).join("")
+    <td>${w.active ? `<button class="btn sm" data-act="invite" data-id="${w.id}">Odkaz do mobilu</button>` : `<button class="btn sm accent" data-act="worker-activate" data-id="${w.id}">Aktivovať</button>`}</td></tr>`).join("")
     : `<tr><td colspan="6" class="empty">Zatiaľ žiadni pracovníci. Pridaj prvého.</td></tr>`}</tbody></table></div>`;
 };
 function openWorker(id) {
@@ -628,11 +636,18 @@ function openWorker(id) {
       <input type="date" id="aFrom" required aria-label="Od"> – <input type="date" id="aTo" required aria-label="Do">
       <input id="aNote" placeholder="poznámka" style="flex:1;min-width:120px"><button class="btn">Pridať</button></form>
     ${abs.length ? `<table><tbody>${abs.map(a => `<tr><td>${KIND[a.kind]}</td><td class="num">${dFull(a.date_from)} – ${dFull(a.date_to)}</td><td class="r num">${workdays(a.date_from, a.date_to)} prac. dní</td><td class="muted">${esc(a.note || "")}</td><td class="r"><button class="btn sm danger" data-act="absence-del" data-id="${a.id}" data-w="${id}">Zmazať</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted" style="margin:0">Žiadna zadaná neprítomnosť.</p>`}</div>` : ""}`,
-  `${id ? `<button class="btn" data-act="invite" data-id="${id}">Odkaz do mobilu</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="worker-save">Uložiť</button>`);
+  `${id ? `<button class="btn danger" data-act="worker-del" data-id="${id}">Zmazať</button><button class="btn" data-act="invite" data-id="${id}">Odkaz do mobilu</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="worker-save">Uložiť</button>`);
 }
 async function saveWorker() {
   const f = $("[data-form=worker]"); const id = f.dataset.id;
   if (!f.wName.value.trim()) return toast("Zadaj meno", true);
+  // nepridať toho istého človeka druhýkrát – ponúknuť aktiváciu
+  const norm = t => t.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+  const twin = !id && W.find(w => norm(w.name) === norm(f.wName.value));
+  if (twin) {
+    if (!twin.active && confirm(twin.name + " už je v zozname ako neaktívny. Aktivovať ho (so starou sadzbou a históriou) namiesto pridania nového?")) { closeModal(); return activateWorker(twin.id); }
+    if (twin.active && !confirm(twin.name + " už v zozname je. Naozaj pridať ďalšieho s rovnakým menom?")) return;
+  }
   const row = {name: f.wName.value.trim(), phone: f.wPhone.value.trim() || null, type: f.wType.value,
     hourly_rate: f.wRate.value === "" ? null : +f.wRate.value, active: f.wActive.checked, note: f.wNote.value.trim() || null};
   try {
@@ -641,8 +656,26 @@ async function saveWorker() {
     else saved = await q(sb.from("workers").insert({...row, company_id: C.id}).select().single());
     W = W.filter(w => w.id !== saved.id).concat(saved).sort((a, b) => a.name.localeCompare(b.name, "sk"));
     closeModal(); toast("Uložené");
-    if (!id) openInvite(saved.id); else go();
+    go(); if (!id) openInvite(saved.id);
   } catch (e) { toast(errMsg(e), true); }
+}
+async function activateWorker(id) {
+  const saved = await q(sb.from("workers").update({active: true}).eq("id", id).select().single());
+  W = W.map(w => w.id === id ? saved : w); toast(saved.name + " je znova aktívny"); go();
+}
+// zmazať sa dá len pracovník bez záznamov dochádzky – inak by zmizli z výkazov
+async function deleteWorker(id) {
+  const used = await q(sb.from("entries").select("id").eq("worker_id", id).limit(1));
+  if (used.length) {
+    if (!worker(id).active) return toast("Pracovník má záznamy dochádzky, preto ostáva ako neaktívny.", true);
+    if (!confirm("Pracovník má záznamy dochádzky, preto sa nedá zmazať (zmizli by z výkazov). Označiť ho ako neaktívneho? Nebude sa vedieť prihlásiť a zo zoznamu sa schová.")) return;
+    const saved = await q(sb.from("workers").update({active: false}).eq("id", id).select().single());
+    W = W.map(w => w.id === id ? saved : w); closeModal(); toast("Pracovník je neaktívny"); go(); return;
+  }
+  if (!confirm("Naozaj zmazať pracovníka " + worker(id).name + "?")) return;
+  await q(sb.from("workers").delete().eq("id", id));
+  W = W.filter(w => w.id !== id); A = A.filter(a => a.worker_id !== id); R = R.filter(r => r.worker_id !== id);
+  closeModal(); toast("Zmazané"); go();
 }
 function inviteLink(w) { return WORKER_APP + "?kod=" + w.invite_code; }
 function openInvite(id) {
@@ -832,6 +865,8 @@ document.addEventListener("click", async ev => {
       case "worker": openWorker(id); break;
       case "worker-new": openWorker(null); break;
       case "worker-save": await saveWorker(); break;
+      case "worker-del": await deleteWorker(id); break;
+      case "worker-activate": ev.stopPropagation(); await activateWorker(id); break;
       case "invite": ev.stopPropagation(); openInvite(id); break;
       case "copy": try { await navigator.clipboard.writeText(el.dataset.v); toast("Skopírované – vlož do správy"); } catch (e) { $("#iLink").select(); toast("Skopíruj odkaz ručne", true); } break;
       case "new-code": { if (!confirm("Vytvoriť nový kód? Starý kód prestane platiť a mobil, v ktorom je pracovník prihlásený, sa odhlási.")) return;
@@ -879,6 +914,7 @@ document.addEventListener("change", async ev => {
   else if (t.id === "fWorker") { flt.worker = t.value; go(); }
   else if (t.id === "fProject") { flt.project = t.value; go(); }
   else if (t.id === "fEdited") { flt.edited = t.checked; go(); }
+  else if (t.id === "fInactive") { showInactive = t.checked; go(); }
   else if (t.id === "pRadius" && pCircle) pCircle.setRadius(+t.value || C.default_radius);
   else if (t.dataset.taskName) updTask(+t.dataset.taskName, {name: t.value.trim()});
   else if (t.dataset.taskActive) updTask(+t.dataset.taskActive, {active: t.checked});
