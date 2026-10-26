@@ -13,7 +13,8 @@ psql -d dochadzka_test -f test/rls-test.sql
 
 Očakávané chyby v výstupe: „Najprv sa prihlás e-mailom“ (anonym nevytvorí firmu), „row-level security“
 (pracovník nezapíše za iného, nenahrá fotku do cudzieho priečinka), „Neplatný kód“, „Pracovník nenájdený“
-(cudzí správca nezmení kód), „Položka nenájdená alebo už vybavená“, „Nie si prihlásený“ (hotovosť).
+(cudzí správca nezmení kód), „Položka nenájdená alebo už vybavená“, „Nie si prihlásený“ (hotovosť),
+„Nie si správca firmy“, „Najprv pracovníka deaktivuj“ (GDPR: mazanie GPS a anonymizácia).
 
 ## Weby bez servera
 

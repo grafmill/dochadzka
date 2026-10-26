@@ -11,8 +11,8 @@
   const AUTHKEY = "mockauth:" + (location.pathname.includes("/admin/") ? "admin" : "app");
   const session = () => JSON.parse(localStorage.getItem(AUTHKEY) || "null");
   const DEFAULTS = {
-    companies: () => ({id: uuid(), gps_enabled: false, breaks_enabled: false, default_radius: 500, default_rate: 0, forgot_checkout_hour: 18, max_shift_hours: 12, budget_warn_pct: 80, cash_writeoff_limit: 2, cash_overdue_days: 3, created_at: now()}),
-    workers: () => ({id: uuid(), type: "TPP", hourly_rate: null, active: true, user_id: null, invite_code: code(), gps_consent: null, phone: null, note: null, created_at: now()}),
+    companies: () => ({id: uuid(), gps_enabled: false, breaks_enabled: false, default_radius: 500, default_rate: 0, forgot_checkout_hour: 18, max_shift_hours: 12, budget_warn_pct: 80, cash_writeoff_limit: 2, cash_overdue_days: 3, gps_keep_days: 90, photo_keep_days: 365, privacy_controller: null, privacy_url: null, created_at: now()}),
+    workers: () => ({id: uuid(), type: "TPP", hourly_rate: null, active: true, user_id: null, invite_code: code(), gps_consent: null, gps_consent_at: null, anonymized_at: null, phone: null, note: null, created_at: now()}),
     projects: () => ({id: uuid(), address: null, lat: null, lng: null, radius: null, budget: null, active: true, note: null, created_at: now()}),
     tasks: () => ({active: true}),
     rates: () => ({id: uuid(), worker_id: null, project_id: null, task_num: null, created_at: now()}),
@@ -94,6 +94,12 @@
     async resetPasswordForEmail() { return {data: {}, error: null}; }
   };
   const uid = () => session()?.user?.id;
+  function mockSummary(db, c, e, g) {
+    if (!g || g.lat == null) return g;
+    const p = db.projects.find(x => x.id === e.project_id); if (!p || p.lat == null) return {purged: true, on_site: null, dist: null};
+    const r = Math.PI / 180, x = Math.sin((p.lat - g.lat) * r / 2) ** 2 + Math.cos(g.lat * r) * Math.cos(p.lat * r) * Math.sin((p.lng - g.lng) * r / 2) ** 2;
+    const d = Math.round(2 * 6371000 * Math.asin(Math.sqrt(x))); return {purged: true, on_site: d <= (p.radius || c.default_radius), dist: d};
+  }
   const RPC = {
     my_admin_company() { return load().company_admins.find(a => a.user_id === uid())?.company_id || null; },
     create_company({p_name}) {
@@ -119,7 +125,21 @@
       if (!db.cash_items.some(x => x.id === p_id)) db.cash_items.push({...DEFAULTS.cash_items(), id: p_id, company_id: w.company_id, worker_id: w.id, kind: "own", purpose: p_purpose || "", spent: p_spent, photos: p_photos || [], worker_note: p_note || null, reported_at: now(), status: "reported"});
       store(db); return null;
     },
-    set_gps_consent({p_consent}) { const db = load(); db.workers.forEach(w => { if (w.user_id === uid()) w.gps_consent = p_consent; }); store(db); return null; }
+    set_gps_consent({p_consent}) { const db = load(); db.workers.forEach(w => { if (w.user_id === uid()) { w.gps_consent = p_consent; w.gps_consent_at = now(); } }); store(db); return null; },
+    purge_old_gps() {
+      const db = load(); const cid = db.company_admins.find(a => a.user_id === uid())?.company_id; if (!cid) throw new Error("Nie si správca firmy");
+      const c = db.companies.find(x => x.id === cid), lim = Date.now() - c.gps_keep_days * 864e5; let n = 0;
+      db.entries.forEach(e => { if (e.company_id === cid && Date.parse(e.start_at) < lim && (e.gps_start?.lat != null || e.gps_end?.lat != null)) { n++; e.gps_start = mockSummary(db, c, e, e.gps_start); e.gps_end = mockSummary(db, c, e, e.gps_end); } });
+      store(db); return n;
+    },
+    anonymize_worker({p_worker}) {
+      const db = load(); const w = db.workers.find(x => x.id === p_worker); const cid = db.company_admins.find(a => a.user_id === uid())?.company_id;
+      if (!w || w.company_id !== cid) throw new Error("Pracovník nenájdený"); if (w.active) throw new Error("Najprv pracovníka deaktivuj");
+      Object.assign(w, {name: "Bývalý pracovník " + w.id.slice(0, 4).toUpperCase(), phone: null, note: null, user_id: null, invite_code: code(), gps_consent: null, gps_consent_at: null, anonymized_at: now()});
+      const c = db.companies.find(x => x.id === cid);
+      db.entries.forEach(e => { if (e.worker_id === p_worker) { e.gps_start = mockSummary(db, c, e, e.gps_start); e.gps_end = mockSummary(db, c, e, e.gps_end); } });
+      store(db); return null;
+    }
   };
   const PIXEL = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#c96"/></svg>');
   window.supabase = {
@@ -130,6 +150,7 @@
         auth,
         storage: {from: () => ({
           async upload(path, blob) { const db = load(); db.files[path] = blob.size; store(db); return {data: {path}, error: null}; },
+          async remove(paths) { const db = load(); paths.forEach(p => delete db.files[p]); store(db); return {data: paths.map(name => ({name})), error: null}; },
           async createSignedUrl(path) { return {data: {signedUrl: PIXEL}, error: null}; },
           async createSignedUrls(paths) { return {data: paths.map(p => ({path: p, signedUrl: PIXEL})), error: null}; }
         })}

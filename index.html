@@ -10,8 +10,7 @@
 </head><body>
 <title>Dochádzka na stavbe</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
 <style>
 /* Layout: jedna obrazovka, veľké tlačidlá pre prácu v rukaviciach, dôležité hore, detaily v spodných paneloch */
 :root{
@@ -38,6 +37,8 @@ button{cursor:pointer}
 :focus-visible{outline:3px solid var(--info);outline-offset:2px}
 .wrap{max-width:520px;margin:0 auto;padding-block:12px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 .num{font-variant-numeric:tabular-nums}
+.byadm{display:inline-flex;align-items:center;gap:4px;color:var(--info);font-weight:600;font-size:14px}
+.privacy{display:flex;flex-direction:column;gap:10px}.privacy p{margin:0}.privacy a{color:var(--info)}
 
 /* hlavička */
 .top{display:flex;align-items:center;gap:10px}
@@ -183,7 +184,8 @@ button{cursor:pointer}
    company, projects, tasks prídu zo servera; entries sa posielajú cez outbox.
    ====================================================================== */
 const DEMO = {
-  company:{ name:"Stavby Novák s.r.o.", gpsEnabled:true, breaksEnabled:false, defaultRadius:500, forgotCheckoutHour:18, maxShiftHours:12 },
+  company:{ name:"Stavby Novák s.r.o.", gpsEnabled:true, breaksEnabled:false, defaultRadius:500, forgotCheckoutHour:18, maxShiftHours:12,
+    privacyController:"Stavby Novák s.r.o., Hlavná 1, Bratislava, IČO 12345678, kancelaria@stavbynovak.sk", privacyUrl:"", gpsKeepDays:90, photoKeepDays:365 },
   worker:{ id:"w1", name:"Peter Kováč", type:"TPP" },   // type: "TPP" | "SZCO" (živnostník)
   projects:[
     { id:"p1", name:"Bytový dom Tomášikova", address:"Tomášikova 12, Bratislava-Ružinov", lat:48.1585, lng:17.1580, radius:500 },
@@ -238,7 +240,7 @@ function uid(){
 const live=()=>S.mode==="live";
 function at(dayOffset,h,m){ const d=new Date(); d.setDate(d.getDate()+dayOffset); d.setHours(h,m,0,0); return d.getTime(); }
 function mk(o){ return Object.assign({id:uid(),workerId:S.worker?S.worker.id:"w1",projectId:null,otherText:"",taskNum:0,note:"",photos:[],photoPaths:[],start:0,end:null,
-  startOrig:null,endOrig:null,edited:false,gpsStart:null,gpsEnd:null,breaks:[],synced:true},o); }
+  startOrig:null,endOrig:null,edited:false,byAdmin:false,gpsStart:null,gpsEnd:null,breaks:[],synced:true},o); }
 function seed(s){
   // ukážková história, aby bolo vidieť prehľad
   const plan=[[-3,[["p1",5,7,0,15,30]]],[-2,[["p1",8,7,0,11,45],["p3",8,12,15,15,40]]],[-1,[["p2",9,6,45,15,15]]]];
@@ -295,12 +297,12 @@ const ICON={
 let lastPos=null;
 function getPos(){
   return new Promise(res=>{
-    const sim=()=>{ if(live()) return res(null); const p=proj(S.demo.simLoc); res(p?{lat:p.lat+0.0007,lng:p.lng-0.0005,acc:15,sim:true}:{lat:48.20,lng:17.40,acc:30,sim:true}); };
+    const sim=()=>{ if(live()) return res(null); const p=proj(S.demo.simLoc); res(p?{lat:p.lat+0.0007,lng:p.lng-0.0005,acc:15,sim:true,t:Date.now()}:{lat:48.20,lng:17.40,acc:30,sim:true,t:Date.now()}); };
     if(!navigator.geolocation) return sim();
     let done=false; const t=setTimeout(()=>{ if(!done){done=true;sim();} },6000);
     try{
       navigator.geolocation.getCurrentPosition(
-        p=>{ if(done)return; done=true; clearTimeout(t); res({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)}); },
+        p=>{ if(done)return; done=true; clearTimeout(t); res({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy),t:Date.now()}); },
         ()=>{ if(done)return; done=true; clearTimeout(t); sim(); },
         {enableHighAccuracy:true,timeout:6000,maximumAge:60000});
     }catch(e){ if(!done){done=true;clearTimeout(t);sim();} }
@@ -347,7 +349,7 @@ function toRow(e){
 function fromRow(r,old){
   return { id:r.id, workerId:r.worker_id, projectId:r.project_id, otherText:r.other_text||"", taskNum:r.task_num, note:r.note||"",
     photos:old?old.photos:[], photoPaths:r.photos||[], start:msOf(r.start_at), end:msOf(r.end_at), startOrig:msOf(r.start_orig), endOrig:msOf(r.end_orig),
-    edited:r.edited, gpsStart:r.gps_start, gpsEnd:r.gps_end, breaks:r.breaks||[], synced:true };
+    edited:r.edited, byAdmin:!!r.by_admin, gpsStart:r.gps_start, gpsEnd:r.gps_end, breaks:r.breaks||[], synced:true };
 }
 async function uploadPhotos(e){
   e.photoPaths=e.photoPaths||[];
@@ -393,7 +395,8 @@ async function pull(){
     S.cash=cash;
     S.companyId=w.company_id; S.worker={id:w.id,name:w.name,type:w.type};
     if(S.gpsConsent===null||w.gps_consent!==null) S.gpsConsent=w.gps_consent;
-    S.company={name:c.name,gpsEnabled:c.gps_enabled,breaksEnabled:c.breaks_enabled,defaultRadius:c.default_radius,forgotCheckoutHour:c.forgot_checkout_hour,maxShiftHours:c.max_shift_hours};
+    S.company={name:c.name,gpsEnabled:c.gps_enabled,breaksEnabled:c.breaks_enabled,defaultRadius:c.default_radius,forgotCheckoutHour:c.forgot_checkout_hour,maxShiftHours:c.max_shift_hours,
+      privacyController:c.privacy_controller||"",privacyUrl:c.privacy_url||"",gpsKeepDays:c.gps_keep_days??null,photoKeepDays:c.photo_keep_days??null};
     S.projects=ps.map(p=>({...p,address:p.address||""})); S.tasks=ts.length?ts:[{num:0,name:"Nezaradené"}];
     const byId=new Map(S.entries.map(e=>[e.id,e])), seen=new Set();
     es.forEach(r=>{ seen.add(r.id); if(S.outbox.includes(r.id)) return; byId.set(r.id,fromRow(r,byId.get(r.id))); });
@@ -442,9 +445,10 @@ let pendingCode="";
 async function checkIn(){
   if(draft.projectId===null && !draft.otherText.trim()){ openProjectSheet(true); return; }
   const now=Date.now();
-  let pos=null; if(gpsOn()) pos=lastPos||await getPos();
+  // poloha sa ukladá len pri Príchode – čerstvá (nie staršia ako 2 min. z otvorenia appky)
+  let pos=null; if(gpsOn()) pos=(lastPos&&now-(lastPos.t||0)<120000)?lastPos:await getPos();
   const cur=openEntry();
-  if(cur){ closeEntry(cur,now,pos); }
+  if(cur){ closeEntry(cur,now); }
   const e=mk({projectId:draft.projectId,otherText:draft.otherText.trim(),taskNum:draft.taskNum,note:draft.note.trim(),photos:draft.photos,start:now,
     gpsStart:pos?{lat:pos.lat,lng:pos.lng,acc:pos.acc,auto:draft.source==="gps",sim:!!pos.sim}:null});
   S.entries.push(e);
@@ -454,15 +458,14 @@ async function checkIn(){
   toast(cur?"Presun zapísaný, príchod "+hm(now):"Príchod "+hm(now));
   render();
 }
-function closeEntry(e,ts,pos){
+function closeEntry(e,ts){
   e.breaks.forEach(b=>{ if(b.end===null) b.end=ts; });
-  e.end=ts; if(pos) e.gpsEnd={lat:pos.lat,lng:pos.lng,acc:pos.acc,sim:!!pos.sim};
+  e.end=ts;   // pri Odchode sa poloha neukladá
   queue(e);
 }
 async function checkOut(){
   const e=openEntry(); if(!e) return;
-  const pos=gpsOn()?await getPos():null;
-  closeEntry(e,Date.now(),pos); switching=false;
+  closeEntry(e,Date.now()); switching=false;
   toast("Odchod "+hm(e.end)+" · dnes spolu "+durTxt(todayMs()));
   render(); prepareDraft();
 }
@@ -599,13 +602,14 @@ function entryRow(e){
   return `<button class="entry" data-act="edit" data-id="${e.id}">
     <span class="t num ${e.end===null?"open":""}">${hm(e.start)}–${e.end===null?"teraz":hm(e.end)}</span>
     <span class="p"><b>${esc(projName(e))}</b><span>${e.taskNum} · ${esc(taskName(e.taskNum))}${e.note?" · "+esc(e.note):""}</span>
-      ${e.edited?`<span class="edited">${ICON.warn} upravené${e.startOrig!=null?" · pôv. príchod "+hm(e.startOrig):""}${e.endOrig!=null?" · pôv. odchod "+hm(e.endOrig):""}</span>`:""}</span>
+      ${e.edited?`<span class="edited">${ICON.warn} upravené${e.startOrig!=null?" · pôv. príchod "+hm(e.startOrig):""}${e.endOrig!=null?" · pôv. odchod "+hm(e.endOrig):""}</span>`:""}
+      ${e.byAdmin?`<span class="byadm">${ICON.warn} zmenil zamestnávateľ</span>`:""}</span>
     <span class="d num">${durShort(worked(e))}</span></button>`;
 }
 function consentHtml(){
   if(!S.company.gpsEnabled||S.gpsConsent!==null) return "";
-  return `<div class="banner"><p><b>Poloha pri príchode a odchode</b><br>${esc(S.company.name)} zapol zaznamenávanie polohy. Appka si polohu zapíše len pri Príchode a Odchode a podľa nej sama vyberie zákazku. Nesleduje ťa počas dňa.</p>
-    <div class="row"><button class="btn primary" data-act="consent-yes">Súhlasím</button><button class="btn" data-act="consent-no">Nesúhlasím</button></div></div>`;
+  return `<div class="banner"><p><b>Poloha pri príchode</b><br>${esc(S.company.name)} zapol zaznamenávanie polohy. Appka si polohu zapíše len v okamihu, keď ťukneš Príchod, a podľa nej sama vyberie zákazku. Nesleduje ťa počas dňa ani mimo práce. Bez súhlasu appka funguje rovnako, len bez polohy.</p>
+    <div class="row"><button class="btn primary" data-act="consent-yes">Súhlasím</button><button class="btn" data-act="consent-no">Nesúhlasím</button><button class="btn" data-act="privacy">Viac o údajoch</button></div></div>`;
 }
 function bannersHtml(e){
   if(!e||reminderDismissed) return "";
@@ -705,18 +709,32 @@ function saveEdit(){
   if(ch){ e.edited=true; queue(e); toast("Čas upravený"); }
   closeSheet(); render(); if(!openEntry()&&!draft) prepareDraft();
 }
+function openPrivacy(){
+  const c=S.company, days=n=>n?(n%365===0?(n/365)+(n/365===1?" rok":n/365<5?" roky":" rokov"):n+" dní"):"podľa pravidiel firmy";
+  sheet("Ochrana údajov",`<div class="privacy">
+    <p><b>Kto spracúva tvoje údaje:</b> ${esc((c.privacyController||c.name||"tvoj zamestnávateľ").replace(/[.\s]+$/,""))}.</p>
+    <p><b>Na čo:</b> evidencia pracovného času a práce na zákazkách, výpočet mzdy alebo odmeny, vyúčtovanie hotovosti a dokumentácia prác.</p>
+    <p><b>Čo appka posiela:</b> len to, čo zadáš: čas príchodu a odchodu (pri oprave aj pôvodný čas), zákazku, úlohu, poznámku, prestávky, fotky, ktoré sám odfotíš, a pri hotovosti sumu a bloček.</p>
+    <p><b>Poloha (GPS):</b> ${c.gpsEnabled?`len ak súhlasíš, a iba v okamihu, keď ťukneš <b>Príchod</b>. Pri Odchode, počas dňa ani mimo práce sa poloha nezisťuje ani neukladá. Keď je appka zatvorená, nebeží. Súradnice sa po ${days(c.gpsKeepDays)} zmažú, ostane len údaj, či bol príchod na stavbe. Súhlas môžeš kedykoľvek zrušiť v Nastaveniach, appka funguje ďalej bez polohy.`:"zamestnávateľ ju nemá zapnutú, appka polohu nezisťuje."}</p>
+    <p><b>Čo appka neberie:</b> kontakty, správy, galériu, telefónne číslo ani údaje z iných appiek. Z fotiek sa pred odoslaním odstránia skryté údaje vrátane miesta odfotenia.</p>
+    <p><b>Kto to vidí:</b> iba tvoj zamestnávateľ. Kolegovia tvoje záznamy nevidia. Fotky k práci sa mažú po ${days(c.photoKeepDays)}.</p>
+    <p><b>Tvoje práva:</b> môžeš požiadať o kópiu svojich údajov, ich opravu alebo vymazanie a podať sťažnosť na Úrad na ochranu osobných údajov SR (dataprotection.gov.sk).</p>
+    ${c.privacyUrl?`<p><a href="${esc(c.privacyUrl)}" target="_blank" rel="noopener">Celá informácia o spracúvaní osobných údajov</a></p>`:""}
+    <p class="hint">Technicky, ako každá webová stránka, aj appka pri pripojení odovzdá serveru IP adresu a typ prehliadača.</p></div>`);
+}
 function openSettings(){
   const c=S.company;
   if(live()){
     sheet("Nastavenia",`
-    ${c.gpsEnabled?`<div class="toggle"><div class="grow"><b>Súhlas s polohou</b><span>Poloha sa zapíše len pri Príchode a Odchode.</span></div><input type="checkbox" class="sw" id="swConsent" ${S.gpsConsent?"checked":""}></div>`:`<p class="hint">Zamestnávateľ nemá zapnuté zaznamenávanie polohy.</p>`}
+    ${c.gpsEnabled?`<div class="toggle"><div class="grow"><b>Súhlas s polohou</b><span>Poloha sa zapíše len pri Príchode.</span></div><input type="checkbox" class="sw" id="swConsent" ${S.gpsConsent?"checked":""}></div>`:`<p class="hint">Zamestnávateľ nemá zapnuté zaznamenávanie polohy.</p>`}
     <p class="hint">${esc(S.worker.name)} · ${esc(c.name)}<br>${S.outbox.length?"Čaká na odoslanie: "+S.outbox.length+" záznamov":"Všetko odoslané"}${S.pulledAt?" · aktualizované "+hm(S.pulledAt):""}${lastErr?"<br>Chyba: "+esc(lastErr):""}</p>
+    <button class="btn" data-act="privacy">Ochrana údajov</button>
     <button class="btn" data-act="refresh">Aktualizovať teraz</button>
     <button class="btn" data-act="logout">Odhlásiť z tohto mobilu</button>`);
     return;
   }
   sheet("Nastavenia",`
-    ${c.gpsEnabled?`<div class="toggle"><div class="grow"><b>Súhlas s polohou</b><span>Poloha sa zapíše len pri Príchode a Odchode.</span></div><input type="checkbox" class="sw" id="swConsent" ${S.gpsConsent?"checked":""}></div>`:`<p class="hint">Zamestnávateľ nemá zapnuté zaznamenávanie polohy.</p>`}
+    ${c.gpsEnabled?`<div class="toggle"><div class="grow"><b>Súhlas s polohou</b><span>Poloha sa zapíše len pri Príchode.</span></div><input type="checkbox" class="sw" id="swConsent" ${S.gpsConsent?"checked":""}></div>`:`<p class="hint">Zamestnávateľ nemá zapnuté zaznamenávanie polohy.</p>`}
     <div class="demo">
       <h4>Ukážka – nastavenia zamestnávateľa</h4>
       <p class="hint" style="margin-bottom:4px">Toto bude v administrácii. Tu na vyskúšanie.</p>
@@ -735,12 +753,12 @@ function openSettings(){
 }
 function openHistory(){
   const days={};
-  S.entries.forEach(e=>{ const k=dayKey(e.start); (days[k]=days[k]||{ts:e.start,ms:0,ed:false,proj:new Set()}); days[k].ms+=worked(e); days[k].ed=days[k].ed||e.edited; days[k].proj.add(projName(e)); });
+  S.entries.forEach(e=>{ const k=dayKey(e.start); (days[k]=days[k]||{ts:e.start,ms:0,ed:false,proj:new Set()}); days[k].ms+=worked(e); days[k].ed=days[k].ed||e.edited; days[k].adm=days[k].adm||e.byAdmin; days[k].proj.add(projName(e)); });
   const list=Object.values(days).sort((a,b)=>b.ts-a.ts);
   const mon=new Date(); const monthMs=S.entries.filter(e=>{const d=new Date(e.start);return d.getMonth()===mon.getMonth()&&d.getFullYear()===mon.getFullYear();}).reduce((a,e)=>a+worked(e),0);
   sheet("Prehľad",`
     <div class="hours" style="padding:0"><div><div class="lbl">${mon.toLocaleDateString("sk-SK",{month:"long"})} spolu</div><div class="big num" style="font-size:44px">${durShort(monthMs)}<small>h</small></div></div></div>
-    <div>${list.map(d=>`<div class="day"><div><b>${new Date(d.ts).toLocaleDateString("sk-SK",{weekday:"short",day:"numeric",month:"numeric"})}</b>${d.ed?` <span class="edited">${ICON.warn} upravené</span>`:""}<br><span class="hint">${esc([...d.proj].join(", "))}</span></div><b class="num">${durShort(d.ms)} h</b></div>`).join("")}</div>`);
+    <div>${list.map(d=>`<div class="day"><div><b>${new Date(d.ts).toLocaleDateString("sk-SK",{weekday:"short",day:"numeric",month:"numeric"})}</b>${d.ed?` <span class="edited">${ICON.warn} upravené</span>`:""}${d.adm?` <span class="byadm">${ICON.warn} zmenil zamestnávateľ</span>`:""}<br><span class="hint">${esc([...d.proj].join(", "))}</span></div><b class="num">${durShort(d.ms)} h</b></div>`).join("")}</div>`);
 }
 
 /* fotka – zmenší sa na ~1024 px, aby sa dala poslať aj pri slabom signáli */
@@ -803,6 +821,7 @@ document.addEventListener("click",ev=>{
     case "logout": if(S.outbox.length&&!confirm("V mobile sú neodoslané záznamy ("+S.outbox.length+"). Po odhlásení sa stratia. Odhlásiť?")) return;
       closeSheet(); if(sb) sb.auth.signOut().catch(()=>{}); S={mode:null}; save(); draft=null; render(); break;
     case "settings": openSettings(); break;
+    case "privacy": openPrivacy(); break;
     case "cash-report": openCashSheet(el.dataset.id); break;
     case "own-buy": if(!online()){ toast("Funguje len so signálom"); return; } openCashSheet(null); break;
     case "cash-photo": keepCashFields(); photoTarget="cash"; $("#photoInput").click(); break;

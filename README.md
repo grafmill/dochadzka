@@ -23,6 +23,10 @@ Appka v mobile: otvor odkaz od zamestnávateľa a pridaj si appku na plochu
 - **Zálohy a vyúčtovanie**: Doplatiť = cena práce − zálohy ± hotovosť − mínus z minulého mesiaca; mínus sa prenáša sám.
 - **Pokladňa**: hotovosť daná na nákup svieti ako nevyúčtovaná, kým pracovník nepošle fotku bločku a správca ju nepotvrdí.
   Nákup za vlastné peniaze sa po potvrdení pripočíta k výplate.
+- **Ochrana údajov (GDPR)**: poloha len pri Príchode a len so súhlasom (s dátumom a časom), GPS súradnice a fotky k práci
+  sa po nastaviteľnej lehote mažú, anonymizácia bývalého pracovníka, export údajov pracovníka, obrazovka „Ochrana údajov“
+  v appke. Podklady a návody: [docs/gdpr.html](docs/gdpr.html), [docs/navod-pracovnik.html](docs/navod-pracovnik.html),
+  [docs/navod-zamestnavatel.html](docs/navod-zamestnavatel.html).
 - Bezpečnosť je v databáze (Row Level Security): pracovník vidí a zapisuje len svoje záznamy, zamestnávateľ celú svoju firmu.
 
 ## Nasadenie
@@ -35,7 +39,8 @@ spustiť migrácie na novom serveri a zmeniť `config.js`.
 
 ## Knižnice (v `vendor/`, bez CDN)
 
-supabase-js 2.117.2 (MIT), Leaflet 1.9.4 (BSD-2), SheetJS xlsx 0.18.5 mini (Apache-2.0). Mapové podklady © OpenStreetMap.
+supabase-js 2.117.2 (MIT), Leaflet 1.9.4 (BSD-2), SheetJS xlsx 0.18.5 mini (Apache-2.0), písma Barlow a Barlow Condensed
+(SIL OFL, `vendor/fonts/`, bez Google Fonts). Mapové podklady © OpenStreetMap.
 
 ## Testy
 
