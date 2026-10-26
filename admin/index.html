@@ -2,10 +2,15 @@
 <html lang="sk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Dochádzka – administrácia</title>
 <meta name="theme-color" content="#1B1F1D">
 <link rel="icon" href="../icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Správa">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="../vendor/leaflet-1.9.4/leaflet.css">
@@ -65,6 +70,7 @@ main{padding:22px 28px 60px;min-width:0;display:flex;flex-direction:column;gap:1
 .stat .v{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1}
 .btn{min-height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .btn:hover{border-color:var(--muted)}
+a.btn{color:var(--ink);text-decoration:none;justify-content:center}
 .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .btn.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn.danger{color:var(--stop);border-color:var(--stop)}
@@ -98,7 +104,7 @@ main{padding:22px 28px 60px;min-width:0;display:flex;flex-direction:column;gap:1
 table{border-collapse:collapse;width:100%}
 th,td{padding:9px 12px;text-align:left;border-top:1px solid var(--line);vertical-align:top}
 th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;border-top:0;background:var(--sunk);white-space:nowrap}
-td.r,th.r{text-align:right}
+td.r,th.r{text-align:right;white-space:nowrap}
 tr.click{cursor:pointer} tr.click:hover td{background:var(--sunk)}
 tr.edited td:first-child{box-shadow:inset 4px 0 0 var(--flag)}
 tr.sub td{background:var(--sunk);font-size:14px}
@@ -138,8 +144,97 @@ tfoot td{font-weight:700;background:var(--sunk)}
 .tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px;font-weight:600;color:var(--muted)}
 .tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
 .print-only{display:none}
+/* kto je kde – podľa zákaziek */
+.hero{background:var(--ink);color:var(--bg);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.hero .top{display:flex;align-items:flex-end;gap:10px}
+.hero .top .grow{flex:1}
+.hero .sub{font-size:13px;opacity:.75}
+.hero h1{font-size:30px;line-height:1.05}
+.counts{display:grid;gap:8px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.counts>a,.counts>div{background:rgba(255,255,255,.08);border-radius:12px;padding:8px 10px;color:inherit;text-decoration:none}
+.counts .l{font-size:12px;opacity:.75;line-height:1.2}
+.counts .s{font-size:12px;opacity:.85;white-space:nowrap}
+.counts .v{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.1}
+.counts .go{color:#6fd39f} .counts .fl{color:#ff8a80} .counts .or{color:#ffb74d}
+.alerts{background:color-mix(in srgb,var(--flag) 8%,var(--surface));border:2px solid var(--flag);border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.alerts .dot{flex:none;width:22px;height:22px;border-radius:50%;background:var(--flag);color:#fff;font-weight:700;display:grid;place-items:center}
+.alerts ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.alerts button.lnk{border:0;background:none;padding:0;color:var(--info);text-decoration:underline;font-weight:600}
+.pgrid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));align-items:start}
+@media (max-width:420px){.pgrid{grid-template-columns:1fr}}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.pcard .ph{display:flex;flex-direction:column;gap:8px;padding:12px 14px 10px;cursor:pointer;border:0;background:none;width:100%;text-align:left}
+.pcard .ph:hover{background:var(--sunk)}
+.pcard .pn{display:flex;align-items:baseline;gap:8px}
+.pcard .pn b{flex:1;font-family:var(--display);font-size:22px;line-height:1.1}
+.pcard .bud{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
+.pcard .bud .meter{flex:1}
+.person{display:flex;align-items:center;gap:12px;padding:10px 14px;border:0;border-top:1px solid var(--line);background:none;width:100%;text-align:left}
+.person:hover{background:var(--sunk)}
+.person .tn{flex:none;min-width:38px;height:38px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:20px;display:grid;place-items:center}
+.person .mid{flex:1;min-width:0}
+.person .nm{font-weight:600;font-size:16px}
+.person .wh{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person .rt{text-align:right;flex:none}
+.person .hrs{font-family:var(--display);font-weight:600;font-size:19px}
+.money{display:inline-flex;align-items:center;font-size:12px;font-weight:700;border-radius:999px;padding:0 7px;color:#fff;background:var(--warn);margin-left:4px;vertical-align:1px}
+.money.late{background:var(--flag)}
+.left{padding:8px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+details.card summary{font-weight:600;cursor:pointer}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0}
+.thumbs{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.pos{color:var(--go)} .neg{color:var(--flag)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;border-radius:999px;padding:3px 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.citem{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.citem.late{border:2px solid var(--flag)} .citem.rep{border:2px solid var(--warn)}
+.citem .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.citem .top b{flex:1}
+.citem .amt{font-family:var(--display);font-size:22px;font-weight:700}
+.bignum{font-family:var(--display);font-size:26px;font-weight:700}
+.sheetbtns{display:grid;gap:8px;grid-template-columns:1fr 1fr}
+.sheetbtns .btn{min-height:52px;justify-content:center;font-size:16px}
+
+/* spodná lišta a menu v mobile */
+.tabbar{display:none}
+.menu a{min-height:54px;display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);border-bottom:1px solid var(--line);font-size:17px;font-weight:600}
+.menu a span:first-child{flex:1}
+.menu .cnt{flex:none;font-size:12px;background:var(--flag);color:#fff;border-radius:999px;padding:1px 8px}
+.menu .cnt.or{background:var(--warn)}
+.menu .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:10px}
+.menu .tiles a{min-height:64px;border-radius:12px;background:var(--sunk);border:1px solid var(--line);flex-direction:column;justify-content:center;gap:2px;font-size:14px}
+.menu .tiles b{font-family:var(--display);font-size:20px}
+@media (max-width:860px){
+  nav{display:none}
+  main{padding:12px 12px 90px}
+  .tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:900;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar a{min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;color:var(--muted);font-size:12px;position:relative}
+  .tabbar a.on{color:var(--ink);font-weight:600;box-shadow:inset 0 3px 0 var(--accent)}
+  .tabbar .cnt{position:absolute;top:6px;left:calc(50% + 6px);font-size:11px;background:var(--warn);color:#fff;border-radius:999px;padding:0 6px;font-weight:700}
+  .hero{margin:-12px -12px 0;border-radius:0}
+  .scrim{align-items:flex-end;padding:0}
+  .modal{border-radius:20px 20px 0 0;max-height:94vh;overflow:auto}
+  .modal header{position:sticky;top:0;background:var(--surface);z-index:2}
+  .modal footer{position:sticky;bottom:0;background:var(--surface)}
+  .head h1{font-size:26px}
+}
+/* tabuľky ako karty v mobile */
+@media (max-width:700px){
+  .tablewrap{background:none;border:0;overflow:visible}
+  .tablewrap table,.tablewrap tbody,.tablewrap tfoot{display:block}
+  .tablewrap thead{display:none}
+  .tablewrap tr{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 12px;margin-bottom:8px}
+  .tablewrap tr.sub{margin:-6px 0 8px 14px;padding:4px 10px}
+  .tablewrap td{display:flex;justify-content:space-between;gap:12px;border:0;padding:4px 0;text-align:right}
+  .tablewrap td:first-child{text-align:left;justify-content:flex-start;font-size:16px}
+  .tablewrap td[data-l]::before{content:attr(data-l);color:var(--muted);font-size:13px;text-align:left;font-weight:400}
+  .tablewrap td:empty{display:none}
+  .tablewrap td.empty{justify-content:center}
+  tr.edited td:first-child{box-shadow:none} tr.edited{border-left:4px solid var(--flag)!important}
+}
 @media print{
-  nav,.noprint,.btn,.bar{display:none!important}
+  nav,.tabbar,.noprint,.btn,.bar{display:none!important}
   .shell{display:block} main{padding:0}
   .print-only{display:block}
   body{background:#fff;color:#000;font-size:11px}
@@ -154,6 +249,7 @@ tfoot td{font-weight:700;background:var(--sunk)}
 <div id="shell" class="shell" hidden>
   <nav id="nav"></nav>
   <main id="main"></main>
+  <div class="tabbar" id="tabbar"></div>
 </div>
 <div id="modalRoot"></div>
 <div class="toast" id="toast" hidden></div>
@@ -195,6 +291,7 @@ function errMsg(e) {
   if (/already registered/i.test(m)) return "Tento e-mail je už registrovaný – prihlás sa";
   if (/Password should be/i.test(m)) return "Heslo musí mať aspoň 6 znakov";
   if (/duplicate key.*tasks_pkey/i.test(m)) return "Úloha s týmto číslom už existuje";
+  if (/(advances|cash_items)_worker_id_fkey/i.test(m)) return "Pracovník má zálohy alebo hotovosť – nedá sa zmazať, označ ho ako neaktívneho";
   if (/entries_worker_id_fkey/i.test(m)) return "Pracovník má záznamy dochádzky – nedá sa zmazať, označ ho ako neaktívneho";
   if (/Failed to fetch|NetworkError/i.test(m)) return "Bez pripojenia na server";
   return m;
@@ -210,7 +307,7 @@ async function fetchAll(make) {
 /* =====================================================================
    DÁTA
    ===================================================================== */
-let USER = null, C = null, W = [], P = [], T = [], R = [], A = [];
+let USER = null, C = null, W = [], P = [], T = [], R = [], A = [], ADV = [], CASH = [];
 const worker = id => W.find(w => w.id === id);
 const project = id => P.find(p => p.id === id);
 const taskName = n => (T.find(t => t.num === n) || {}).name || ("Úloha " + n);
@@ -249,6 +346,54 @@ async function loadBase() {
     q(sb.from("rates").select("*").eq("company_id", cid).order("created_at")),
     q(sb.from("absences").select("*").eq("company_id", cid).order("date_from", {ascending:false}))
   ]);
+  await loadMoney();
+}
+async function loadMoney() {
+  [ADV, CASH] = await Promise.all([
+    fetchAll(() => sb.from("advances").select("*").eq("company_id", C.id).order("paid_on", {ascending:false})),
+    fetchAll(() => sb.from("cash_items").select("*").eq("company_id", C.id).order("issued_at", {ascending:false}))
+  ]);
+}
+
+/* ---------- peniaze: zálohy, hotovosť, vyúčtovanie ---------- */
+const ymOf = v => dateKey(v).slice(0, 7);
+const r2 = n => Math.round((parseFloat(String(n ?? "").replace(",", ".")) || 0) * 100) / 100;
+const cashOpen = c => c.status !== "done";
+// hotovosť u pracovníka bez dokladu (pohľadávka) – vydaná, ešte nevybavená
+const cashOwed = c => c.kind === "issued" && cashOpen(c) ? +c.given : 0;
+// po lehote: dal som hotovosť a doklad neprišiel (alebo som ho vrátil na opravu)
+const cashLate = c => c.kind === "issued" && (c.status === "open" || c.status === "returned") && Date.now() - ms(c.issued_at) > (C.cash_overdue_days ?? 3) * 864e5;
+// vplyv na výplatu: + doplatiť pracovníkovi, − strhnúť
+const cashPay = c => c.status === "done" && c.settle_mode === "payroll" ? r2((+c.spent || 0) - (+c.given || 0)) : 0;
+function cashSummary(wid) {
+  const l = CASH.filter(c => (!wid || c.worker_id === wid) && cashOwed(c));
+  return {n: l.length, sum: l.reduce((a, c) => a + +c.given, 0), late: l.some(cashLate), toCheck: CASH.filter(c => (!wid || c.worker_id === wid) && c.status === "reported").length};
+}
+const moneyBadge = wid => { const s = cashSummary(wid); return s.n ? `<span class="money ${s.late ? "late" : ""}" title="Hotovosť bez dokladu">${eur(s.sum)}</span>` : ""; };
+// vyúčtovanie mesiaca: cena práce − zálohy ± hotovosť + prenesený mínus z minulých mesiacov
+async function payroll(ym) {
+  const months = new Set(ADV.map(a => a.paid_on.slice(0, 7)).concat(CASH.filter(cashPay).map(c => ymOf(c.settled_at))));
+  const first = [...months].filter(m => m < ym).sort()[0];
+  const cur = ym === cache.range ? cache.entries : await loadEntries(...monthRange(ym));
+  const prev = first ? await fetchAll(() => sb.from("entries").select("worker_id,project_id,task_num,start_at,end_at,breaks").eq("company_id", C.id)
+    .gte("start_at", monthRange(first)[0].toISOString()).lt("start_at", monthRange(ym)[0].toISOString()).order("start_at")) : [];
+  const sum = (arr, f) => { const m = {}; arr.forEach(x => { const k = f(x); if (k) m[k[0]] = (m[k[0]] || 0) + k[1]; }); return m; };
+  const labor = {}; prev.concat(cur).forEach(e => { const k = ymOf(e.start_at) + "|" + e.worker_id; labor[k] = (labor[k] || 0) + costOf(e); });
+  const adv = sum(ADV, a => [a.paid_on.slice(0, 7) + "|" + a.worker_id, +a.amount]);
+  const cash = sum(CASH, c => cashPay(c) ? [ymOf(c.settled_at) + "|" + c.worker_id, cashPay(c)] : null);
+  const data = {};
+  W.forEach(w => {
+    let carry = 0;
+    if (first) for (let d = new Date(monthRange(first)[0]); ymOf(d) < ym; d.setMonth(d.getMonth() + 1)) {
+      const k = ymOf(d) + "|" + w.id;
+      carry = Math.min(0, r2((labor[k] || 0) + (cash[k] || 0) - (adv[k] || 0) + carry));
+    }
+    const k = ym + "|" + w.id;
+    const o = {labor: r2(labor[k]), adv: r2(adv[k]), cash: r2(cash[k]), carry};
+    o.pay = r2(o.labor + o.cash - o.adv + o.carry);
+    data[w.id] = o;
+  });
+  return data;
 }
 function monthRange(ym) {
   const [y, m] = ym.split("-").map(Number);
@@ -343,83 +488,165 @@ async function doCreateCompany(f) {
    NAVIGÁCIA
    ===================================================================== */
 const VIEWS = [
-  ["prehlad", "Prehľad"], ["dochadzka", "Dochádzka"], ["vykazy", "Výkazy"], ["pracovnici", "Pracovníci"],
-  ["zakazky", "Zákazky"], ["ulohy", "Úlohy"], ["sadzby", "Sadzby"], ["nastavenia", "Nastavenia"]
+  ["prehlad", "Kto je kde"], ["zakazky", "Zákazky"], ["pokladna", "Pokladňa / doklady"], ["vykazy", "Výkazy a vyúčtovanie"], ["dochadzka", "Dochádzka"],
+  ["pracovnici", "Pracovníci"], ["ulohy", "Úlohy"], ["sadzby", "Sadzby"], ["nastavenia", "Nastavenia"]
 ];
+const HIDDEN_VIEWS = ["zakazka"];
 const RENDER = {};
-let view = "prehlad", flt = {month: curMonth(), worker: "", project: "", edited: false}, repTab = "workers";
+let view = "prehlad", viewArg = {}, flt = {month: curMonth(), worker: "", project: "", edited: false}, repTab = "workers";
 let cache = {entries: [], range: null, budget: {}};
-
+const ICON = {
+  prehlad: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>`,
+  zakazky: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>`,
+  pokladna: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/><path d="M6 10v5M18 10v5"/></svg>`,
+  menu: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`
+};
+function navBadge(k) {
+  if (k === "pokladna") { const s = cashSummary(); const n = s.n + CASH.filter(c => c.kind === "own" && c.status === "reported").length; return n ? `<span class="cnt" style="background:var(--warn)">${n}</span>` : ""; }
+  return "";
+}
 function renderNav() {
+  const cur = view === "zakazka" ? "zakazky" : view;
   $("#nav").innerHTML = `<div class="brand">Dochádzka</div><div class="firm">${esc(C.name)}</div>
-    ${VIEWS.map(([k, t]) => `<a href="#${k}" class="${view === k ? "on" : ""}">${t}</a>`).join("")}
+    ${VIEWS.map(([k, t]) => `<a href="#${k}" class="${cur === k ? "on" : ""}">${t}${navBadge(k)}</a>`).join("")}
     <div class="grow"></div><div class="me">${esc(USER.email || "")}</div>
     <a href="#" data-act="logout">Odhlásiť</a>`;
+  const nCash = cashSummary().n + CASH.filter(c => c.kind === "own" && c.status === "reported").length;
+  $("#tabbar").innerHTML = [["prehlad", "Kto je kde"], ["zakazky", "Zákazky"], ["pokladna", "Pokladňa"]].map(([k, t]) =>
+    `<a href="#${k}" class="${cur === k ? "on" : ""}">${ICON[k]}${t}${k === "pokladna" && nCash ? `<span class="cnt">${nCash}</span>` : ""}</a>`).join("")
+    + `<a href="#" data-act="menu" class="${["prehlad", "zakazky", "pokladna"].includes(cur) ? "" : "on"}">${ICON.menu}Menu</a>`;
+}
+function openMenu() {
+  const nEd = cache.entries.filter(e => e.edited).length;
+  const item = (k, t, extra = "") => `<a href="#${k}" data-act="close-nav">${t}${extra}</a>`;
+  modal("Menu", `<div class="menu">
+    ${item("dochadzka", "<span>Dochádzka – všetky záznamy</span>", nEd ? `<span class="cnt">${nEd} !</span>` : "")}
+    ${item("vykazy", "<span>Výkazy, vyúčtovanie a export</span>")}
+    ${item("pokladna", "<span>Pokladňa / doklady</span>", cashSummary().n ? `<span class="cnt or">${cashSummary().n}</span>` : "")}
+    ${item("pracovnici", "<span>Pracovníci a odkazy do mobilu</span>")}
+    ${item("zakazky", "<span>Zákazky – pridať, upraviť, rozpočet</span>")}
+    <div class="tiles">${item("ulohy", "<b>0–99</b>Úlohy")}${item("sadzby", "<b>€/h</b>Sadzby")}${item("nastavenia", "<b>⚙</b>Nastavenia")}</div>
+    <div class="bar" style="margin-top:12px"><span class="muted small" style="flex:1">${esc(USER.email || "")}</span><button class="btn sm" data-act="logout">Odhlásiť</button></div></div>`);
 }
 async function go() {
-  view = (location.hash.slice(1) || "prehlad").split("?")[0];
-  if (!VIEWS.some(v => v[0] === view)) view = "prehlad";
+  const [h, qs] = (location.hash.slice(1) || "prehlad").split("?");
+  view = h; viewArg = Object.fromEntries(new URLSearchParams(qs || ""));
+  if (!VIEWS.some(v => v[0] === view) && !HIDDEN_VIEWS.includes(view)) view = "prehlad";
   renderNav();
   if (liveMap) { liveMap.remove(); liveMap = null; }
   const main = $("#main");
-  main.innerHTML = `<div class="empty">Načítavam…</div>`;
-  try { await RENDER[view](main); } catch (e) { main.innerHTML = `<div class="card flag">Chyba: ${esc(errMsg(e))}</div>`; console.error(e); }
+  if (!main.dataset.view || main.dataset.view !== view) main.innerHTML = `<div class="empty">Načítavam…</div>`;
+  main.dataset.view = view;
+  try { await RENDER[view](main); labelTables(main); } catch (e) { main.innerHTML = `<div class="card flag">Chyba: ${esc(errMsg(e))}</div>`; console.error(e); }
+}
+// v mobile sa tabuľky zobrazia ako karty – každá bunka dostane názov stĺpca
+function labelTables(root) {
+  root.querySelectorAll(".tablewrap table").forEach(t => {
+    const hs = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    t.querySelectorAll("tbody tr, tfoot tr").forEach(tr => {
+      let i = 0;
+      [...tr.children].forEach(td => { if (td.colSpan === 1 && i > 0 && hs[i] && !td.hasAttribute("data-l")) td.setAttribute("data-l", hs[i]); i += td.colSpan || 1; });
+    });
+  });
 }
 window.addEventListener("hashchange", go);
 
 /* =====================================================================
    PREHĽAD – kto je kde, upozornenia
    ===================================================================== */
-let liveMap = null, liveTimer = null;
+let liveMap = null, liveTimer = null, live = {open: [], today: []};
+const gpsState = e => {
+  if (!C.gps_enabled) return null;
+  if (!e.gps_start) return {t: "bez GPS", c: "muted"};
+  const p = project(e.project_id);
+  if (!p || p.lat == null) return {t: "GPS", c: "muted"};
+  const d = distM(e.gps_start, p);
+  return d <= (p.radius || C.default_radius) ? {t: "na stavbe", c: "pos"} : {t: fmtDist(d) + " od stavby", c: "warnc", off: d};
+};
+const groupKey = e => e.project_id || "ine:" + (e.other_text || "").trim().toLowerCase();
 RENDER.prehlad = async main => {
   const today0 = new Date(); today0.setHours(0, 0, 0, 0);
   const [open, today, budget] = await Promise.all([
     q(sb.from("entries").select("*").eq("company_id", C.id).is("end_at", null).order("start_at")),
     q(sb.from("entries").select("*").eq("company_id", C.id).gte("start_at", today0.toISOString()).order("start_at")),
-    loadBudgetUse()
+    loadBudgetUse(), loadMoney()
   ]);
-  cache.budget = budget;
+  live = {open, today}; cache.budget = budget; renderNav();
   // nočná zmena: zabudnutý je ten, kto je v práci dlhšie ako limit, nie ten, kto prišiel včera
   const tooLong = e => workedMs(e) > C.max_shift_hours * 36e5;
   const nowOpen = open.filter(e => !tooLong(e));
   const forgotten = open.filter(tooLong);
-  const todayMs = today.reduce((a, e) => a + workedMs(e), 0);
-  const todayCost = today.reduce((a, e) => a + costOf(e), 0);
   const active = W.filter(w => w.active);
-  const absentToday = A.filter(a => a.date_from <= dateKey(Date.now()) && a.date_to >= dateKey(Date.now()));
-  const present = new Set(today.concat(nowOpen).map(e => e.worker_id));
+  const tk = dateKey(Date.now());
+  const absentToday = A.filter(a => a.date_from <= tk && a.date_to >= tk);
+  const working = new Set(nowOpen.map(e => e.worker_id));
+  const present = new Set(today.concat(open).map(e => e.worker_id));
   const missing = active.filter(w => !present.has(w.id) && !absentToday.some(a => a.worker_id === w.id));
-  const editedToday = today.filter(e => e.edited).length;
+  const leftToday = active.filter(w => present.has(w.id) && !working.has(w.id) && !forgotten.some(e => e.worker_id === w.id));
+  const offSite = nowOpen.filter(e => gpsState(e)?.off);
+  const editedToday = today.filter(e => e.edited);
   const warnP = P.filter(p => p.active && budgetState(p, budget[p.id] || 0)?.cls);
+  const lateCash = CASH.filter(cashLate), toCheck = CASH.filter(c => c.status === "reported"), cs = cashSummary();
+
+  const alerts = [
+    ...forgotten.map(e => `<li><b>${esc(wName(e.worker_id))}</b> nemá odchod – v práci ${hhmm(workedMs(e))} h od ${dShort(e.start_at)} ${hm(e.start_at)}. <button class="lnk" data-act="entry" data-id="${e.id}">Opraviť</button></li>`),
+    ...offSite.map(e => `<li><b>${esc(wName(e.worker_id))}</b> je mimo okruhu stavby (${gpsState(e).t.replace(" od stavby", "")} od ${esc(projName(e))}).</li>`),
+    ...warnP.map(p => { const st = budgetState(p, budget[p.id] || 0); return `<li><b>Rozpočet</b> ${esc(p.name)}: ${Math.round(st.pct)} % ${st.cls === "over" ? "– prekročený" : "minuté"}.</li>`; }),
+    ...(editedToday.length ? [`<li><b>${editedToday.length}×</b> dnes upravený čas v mobile. <a href="#dochadzka" data-act="flt-edited">Pozrieť</a></li>`] : []),
+    ...(lateCash.length ? [`<li><b>Doklad chýba</b> dlhšie ako ${C.cash_overdue_days} dni: ${[...new Set(lateCash.map(c => wName(c.worker_id)))].map(esc).join(", ")}. <a href="#pokladna">Pokladňa</a></li>`] : []),
+    ...(toCheck.length ? [`<li><b>${toCheck.length}×</b> doklad čaká na kontrolu. <a href="#pokladna">Skontrolovať</a></li>`] : [])
+  ];
+  // zoskupenie podľa zákaziek: najprv tie, kde sa teraz robí
+  const groups = new Map();
+  nowOpen.forEach(e => { const k = groupKey(e); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
+  const order = [...groups.keys()].sort((a, b) => groups.get(b).length - groups.get(a).length);
+  const idle = P.filter(p => p.active && !groups.has(p.id));
+  const wasOpen = [...main.querySelectorAll("details[id]")].filter(d => d.open).map(d => d.id);
+
+  const budgetLine = p => { const u = budget[p.id] || 0, st = budgetState(p, u); if (!st) return "";
+    return `<div class="bud ${st.cls === "over" ? "neg" : st.cls ? "warnc" : "pos"}"><div class="meter ${st.cls}"><i style="width:${Math.min(100, st.pct)}%"></i></div>${Math.round(st.pct)} % rozpočtu</div>`; };
+  const personRow = e => { const g = gpsState(e), onBreak = (e.breaks || []).some(b => b.end == null);
+    return `<button class="person" data-act="wsheet" data-id="${e.worker_id}">
+      <span class="tn">${e.task_num}</span>
+      <span class="mid"><span class="nm">${esc(wName(e.worker_id))}${e.edited ? ` <span class="flag" title="Upravený čas">!</span>` : ""}${moneyBadge(e.worker_id)}</span>
+        <span class="wh" style="display:block">${esc(taskName(e.task_num))}${e.note ? " · " + esc(e.note) : ""} · od ${hm(e.start_at)}${e.edited && e.start_orig ? ` <span class="flag">(pôvodne ${hm(e.start_orig)})</span>` : ""}</span></span>
+      <span class="rt"><span class="hrs num" style="display:block">${hhmm(workedMs(e))}</span>${onBreak ? `<span class="small warnc">prestávka</span>` : g ? `<span class="small ${g.c}">${esc(g.t)}</span>` : ""}</span></button>`; };
+  const leftRow = k => { const l = today.filter(e => groupKey(e) === k && e.end_at && !working.has(e.worker_id));
+    const by = [...new Set(l.map(e => e.worker_id))]; if (!by.length) return "";
+    return `<div class="left">Dnes tu boli aj: ${by.map(w => esc(wName(w).split(" ")[0])).join(", ")}</div>`; };
+  const card = k => { const list = groups.get(k) || [], p = project(k), e0 = list[0];
+    const name = p ? p.name : "Iné" + (e0?.other_text ? ": " + e0.other_text : "");
+    return `<section class="pcard"><button class="ph" ${p ? `data-act="pdetail" data-id="${p.id}"` : "disabled"}>
+      <span class="pn"><b>${esc(name)}</b><span class="muted small">${list.length ? list.length + (list.length === 1 ? " človek" : list.length < 5 ? " ľudia" : " ľudí") : "nikto"}${p ? " ›" : ""}</span></span>
+      ${p ? budgetLine(p) : ""}</button>${list.map(personRow).join("")}${leftRow(k)}</section>`; };
 
   main.innerHTML = `
-  <div class="head"><h1>Prehľad</h1><span class="muted small noprint">obnovuje sa každých 30 s · ${hm(Date.now())}</span></div>
-  <div class="stats">
-    <div class="stat"><div class="l">Teraz v práci</div><div class="v num">${nowOpen.length}</div></div>
-    <div class="stat"><div class="l">Dnes odpracované</div><div class="v num">${hhmm(todayMs)} h</div></div>
-    <div class="stat"><div class="l">Dnes cena práce</div><div class="v num">${eur(todayCost)}</div></div>
-    <div class="stat"><div class="l">Dnes upravené</div><div class="v num ${editedToday ? "flag" : ""}">${editedToday}</div></div>
-  </div>
-  ${forgotten.length ? `<div class="card" style="border:2px solid var(--flag)"><h3 class="flag">Zabudnutý odchod</h3>
-    ${forgotten.map(e => `<p style="margin:6px 0">${esc(wName(e.worker_id))} – ${esc(projName(e))}, príchod ${dFull(e.start_at)} ${hm(e.start_at)}, v práci už ${hhmm(workedMs(e))} h bez odchodu. <button class="btn sm" data-act="entry" data-id="${e.id}">Upraviť</button></p>`).join("")}</div>` : ""}
-  ${warnP.length ? `<div class="card" style="border:2px solid var(--warn)"><h3 class="warnc">Rozpočet zákazky</h3>
-    ${warnP.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u); return `<p style="margin:6px 0"><b>${esc(p.name)}</b>: ${eur(u)} z ${eur(p.budget)} (${Math.round(s.pct)} %)${s.cls === "over" ? ` <span class="tag flag">prekročený</span>` : ""}</p>`; }).join("")}</div>` : ""}
-  <h2>Teraz v práci</h2>
-  ${nowOpen.length ? `<div class="grid">${nowOpen.map(e => `<div class="card live">
-      <div class="who"><span class="pulse"></span>${esc(wName(e.worker_id))}</div>
-      <div><b>${esc(projName(e))}</b><br><span class="muted">${e.task_num} · ${esc(taskName(e.task_num))}${e.note ? " · " + esc(e.note) : ""}</span></div>
-      <div class="since num">od ${hm(e.start_at)} · ${hhmm(workedMs(e))} h</div>
-      <div class="bar">${gpsTag(e)}${e.edited ? `<span class="tag flag">! upravené</span>` : ""}${(e.breaks || []).some(b => b.end == null) ? `<span class="tag warn">prestávka</span>` : ""}</div>
-    </div>`).join("")}</div>` : `<div class="card empty">Nikto nie je práve prihlásený na zákazke.</div>`}
-  ${P.some(p => p.lat != null) || nowOpen.some(e => e.gps_start) ? `<div id="liveMap" class="map"></div>` : ""}
-  <div class="grid">
-    <div class="card"><h3>Dnes ešte neprišli</h3>${missing.length ? missing.map(w => `<div>${esc(w.name)}</div>`).join("") : `<p class="muted">Všetci sú v práci alebo boli.</p>`}</div>
-    <div class="card"><h3>Dnes neprítomní</h3>${absentToday.length ? absentToday.map(a => `<div>${esc(wName(a.worker_id))} – ${KIND[a.kind]} do ${dFull(a.date_to)}</div>`).join("") : `<p class="muted">Nikto.</p>`}</div>
-  </div>`;
+  <section class="hero">
+    <div class="top"><div class="grow"><div class="sub">${esc(C.name)} · ${new Date().toLocaleDateString("sk-SK", {weekday: "long", day: "numeric", month: "numeric"})} · ${hm(Date.now())}</div><h1>Kto je kde</h1></div></div>
+    <div class="counts">
+      <div><div class="l">V práci</div><div class="v num go">${working.size}</div></div>
+      <a href="#" data-act="toggle-missing"><div class="l">Neprišli</div><div class="v num">${missing.length}</div></a>
+      <div><div class="l">Výstrahy</div><div class="v num ${alerts.length ? "fl" : ""}">${alerts.length}</div></div>
+      <a href="#pokladna"><div class="l">Bez dokladu</div><div class="v num ${cs.n ? "or" : ""}">${cs.n}</div>${cs.n ? `<div class="s num">${eur(cs.sum)}</div>` : ""}</a>
+    </div>
+  </section>
+  ${alerts.length ? `<div class="alerts"><span class="dot">!</span><ul>${alerts.join("")}</ul></div>` : ""}
+  ${order.length ? `<div class="pgrid">${order.map(card).join("")}</div>` : `<div class="card empty">Nikto nie je práve prihlásený na zákazke.</div>`}
+  ${idle.length ? `<details class="card" id="dIdle" ${order.length ? "" : "open"}><summary>Ostatné aktívne zákazky (${idle.length})</summary><div class="pgrid" style="margin-top:10px">${idle.map(p => card(p.id)).join("")}</div></details>` : ""}
+  <details class="card" id="dMissing"><summary>Dnes nie sú v práci (${missing.length + absentToday.length + leftToday.length})</summary>
+    <div style="padding-top:8px;display:flex;flex-direction:column;gap:2px">
+      ${missing.map(w => `<button class="person" style="padding:8px 0" data-act="wsheet" data-id="${w.id}"><span class="mid">${esc(w.name)}${moneyBadge(w.id)}</span><span class="muted small">ešte neprišiel</span></button>`).join("")}
+      ${absentToday.map(a => `<button class="person" style="padding:8px 0" data-act="wsheet" data-id="${a.worker_id}"><span class="mid">${esc(wName(a.worker_id))}</span><span class="muted small">${KIND[a.kind]} do ${dFull(a.date_to)}</span></button>`).join("")}
+      ${leftToday.map(w => { const l = today.filter(e => e.worker_id === w.id); return `<button class="person" style="padding:8px 0" data-act="wsheet" data-id="${w.id}"><span class="mid">${esc(w.name)}${moneyBadge(w.id)}</span><span class="muted small">odišiel ${hm(l[l.length - 1].end_at)} · ${hhmm(l.reduce((a, e) => a + workedMs(e), 0))} h</span></button>`; }).join("")}
+      ${missing.length + absentToday.length + leftToday.length ? "" : `<span class="muted">Všetci sú v práci.</span>`}
+    </div></details>
+  ${P.some(p => p.active && p.lat != null) || nowOpen.some(e => e.gps_start) ? `<details class="card" id="dMap"><summary>Mapa</summary><div id="liveMap" class="map" style="margin-top:10px"></div></details>` : ""}`;
+  wasOpen.forEach(id => { const d = document.getElementById(id); if (d) d.open = true; });
 
-  const mapEl = $("#liveMap");
-  if (mapEl) {
-    liveMap = L.map(mapEl, {scrollWheelZoom: false});
+  const box = $("#dMap");
+  const drawMap = () => {
+    if (liveMap || !box?.open) return;
+    liveMap = L.map("liveMap", {scrollWheelZoom: false});
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "© OpenStreetMap"}).addTo(liveMap);
     const pts = [];
     P.filter(p => p.active && p.lat != null).forEach(p => {
@@ -432,10 +659,48 @@ RENDER.prehlad = async main => {
       pts.push([e.gps_start.lat, e.gps_start.lng]);
     });
     if (pts.length) liveMap.fitBounds(pts, {padding: [40, 40], maxZoom: 15}); else liveMap.setView([48.15, 17.11], 11);
-  }
+  };
+  if (box) { box.addEventListener("toggle", drawMap); drawMap(); }
   clearTimeout(liveTimer);
-  liveTimer = setTimeout(() => { if (view === "prehlad" && !$("#modalRoot").innerHTML) go(); }, 30000);
+  liveTimer = setTimeout(() => { if (view === "prehlad" && !$("#modalRoot").innerHTML && !document.hidden) go(); }, 30000);
 };
+
+/* ťuk na pracovníka: rýchle akcie */
+async function openWorkerSheet(wid) {
+  const w = worker(wid); if (!w) return;
+  const ym = curMonth();
+  const pay = (await payroll(ym))[wid];
+  const e = live.open.filter(x => x.worker_id === wid).pop();
+  const items = CASH.filter(c => c.worker_id === wid && cashOpen(c));
+  const tel = (w.phone || "").replace(/[^\d+]/g, "");
+  modal(w.name, `
+    <div>${e ? `<b>${esc(projName(e))}</b><br><span class="muted">${e.task_num} · ${esc(taskName(e.task_num))}${e.note ? " · " + esc(e.note) : ""} · od ${hm(e.start_at)} · ${hhmm(workedMs(e))} h</span>`
+      : `<span class="muted">Teraz nie je prihlásený na zákazke.</span>`}</div>
+    <div class="card" style="padding:10px 14px">
+      <div class="kv"><span>Zarobené ${new Date().toLocaleDateString("sk-SK", {month: "long"})}</span><b class="num">${eur(pay.labor)}</b></div>
+      ${pay.adv ? `<div class="kv"><span>Zálohy</span><b class="num">− ${eur(pay.adv)}</b></div>` : ""}
+      ${pay.cash ? `<div class="kv"><span>Hotovosť / nákupy</span><b class="num">${pay.cash > 0 ? "+ " : "− "}${eur(Math.abs(pay.cash))}</b></div>` : ""}
+      ${pay.carry ? `<div class="kv"><span>Mínus z minulého mesiaca</span><b class="num neg">− ${eur(-pay.carry)}</b></div>` : ""}
+      <div class="kv" style="border-top:1px solid var(--line);margin-top:4px;padding-top:8px"><span>${pay.pay >= 0 ? "Doplatiť" : "V mínuse"}</span><b class="num ${pay.pay >= 0 ? "pos" : "neg"}">${eur(pay.pay)}</b></div>
+    </div>
+    ${items.length ? `<div class="card" style="padding:10px 14px;border-color:var(--warn)"><b class="warnc">Hotovosť / doklady</b>
+      ${items.map(c => `<div class="kv"><span>${c.kind === "own" ? "Kúpil za svoje" : "Dal som"}: ${esc(c.purpose || "nákup")} <span class="muted small">${dFull(c.issued_at)}</span></span><b class="num">${eur(c.kind === "own" ? c.spent : c.given)} · ${cashStatusTxt(c)}</b></div>`).join("")}</div>` : ""}
+    <div class="sheetbtns">
+      <button class="btn accent" data-act="cash-give" data-id="${wid}">Dať hotovosť</button>
+      <button class="btn" data-act="adv-new" data-id="${wid}">+ Záloha</button>
+      <button class="btn" data-act="invite" data-id="${wid}">Odkaz do mobilu</button>
+      <button class="btn" data-act="worker" data-id="${wid}">Karta pracovníka</button>
+      <a class="btn" href="#dochadzka" data-act="flt-worker" data-id="${wid}">Záznamy</a>
+      ${tel ? `<a class="btn" href="tel:${tel}">Zavolať</a>` : ""}
+    </div>`);
+}
+const SETTLE = {none: "sedelo", returned: "zvyšok vrátil", payroll: "cez výplatu", writeoff: "odpísané"};
+function cashStatusTxt(c) {
+  if (c.status === "done") return "vybavené" + (c.settle_mode ? " · " + SETTLE[c.settle_mode] : "");
+  if (c.status === "reported") return "čaká na kontrolu";
+  if (c.status === "returned") return "vrátené na opravu";
+  return cashLate(c) ? "bez dokladu – po lehote" : "čaká na doklad";
+}
 
 /* =====================================================================
    DOCHÁDZKA – všetky záznamy
@@ -545,19 +810,24 @@ function summarize(list, keyFn) {
     o.ms += workedMs(e); o.cost += costOf(e); o.n++; o.edited += e.edited ? 1 : 0; o.days.add(dateKey(e.start_at)); o.items.push(e); m.set(k, o); });
   return m;
 }
-function reportData(all) {
+function reportData(all, pay = {}) {
   const byW = summarize(all, e => e.worker_id), byP = summarize(all, e => e.project_id || "ine");
-  const workers = W.filter(w => w.active || byW.has(w.id)).map(w => {
+  const hasMoney = id => { const o = pay[id]; return o && (o.adv || o.cash || o.carry) || cashSummary(id).n; };
+  const workers = W.filter(w => w.active || byW.has(w.id) || hasMoney(w.id)).map(w => {
     const s = byW.get(w.id) || {ms: 0, cost: 0, n: 0, edited: 0, days: new Set(), items: []};
-    return {w, s, abs: w.type === "TPP" ? absenceDays(w.id, flt.month) : null, perP: summarize(s.items, e => e.project_id || "ine")};
+    return {w, s, pay: pay[w.id] || {labor: 0, adv: 0, cash: 0, carry: 0, pay: 0}, owed: cashSummary(w.id), abs: w.type === "TPP" ? absenceDays(w.id, flt.month) : null, perP: summarize(s.items, e => e.project_id || "ine")};
   });
   const projects = [...byP.keys()].map(k => ({k, p: k === "ine" ? null : project(k), s: byP.get(k), perW: summarize(byP.get(k).items, e => e.worker_id), perT: summarize(byP.get(k).items, e => e.task_num)}))
     .sort((a, b) => b.s.cost - a.s.cost);
   return {workers, projects};
 }
 RENDER.vykazy = async main => {
-  const all = await monthEntries(); const budget = cache.budget = await loadBudgetUse();
-  const {workers, projects} = reportData(all);
+  const all = await monthEntries(); const budget = cache.budget = await loadBudgetUse(); await loadMoney();
+  const pay = await payroll(flt.month);
+  const {workers, projects} = reportData(all, pay);
+  const T0 = workers.reduce((a, {pay: o, owed}) => { ["labor", "adv", "cash", "carry"].forEach(k => a[k] += o[k]); a.pos += Math.max(0, o.pay); a.neg += Math.min(0, o.pay); a.owed += owed.sum; return a; }, {labor: 0, adv: 0, cash: 0, carry: 0, pos: 0, neg: 0, owed: 0});
+  const sgn = v => v ? (v > 0 ? "+ " : "− ") + eur(Math.abs(v)) : "";
+  const payCell = v => `<b class="num ${v >= 0 ? "pos" : "neg"}">${v >= 0 ? eur(v) : "mínus " + eur(-v)}</b>`;
   const monthTxt = new Date(monthRange(flt.month)[0]).toLocaleDateString("sk-SK", {month: "long", year: "numeric"});
   const tot = all.reduce((a, e) => a + workedMs(e), 0), totC = all.reduce((a, e) => a + costOf(e), 0);
   main.innerHTML = `
@@ -568,11 +838,15 @@ RENDER.vykazy = async main => {
     <div class="tabs" style="min-width:300px"><button class="${repTab === "workers" ? "on" : ""}" data-act="rep-tab" data-t="workers">Na pracovníka</button><button class="${repTab === "projects" ? "on" : ""}" data-act="rep-tab" data-t="projects">Na zákazku</button></div></div>
   <div class="stats"><div class="stat"><div class="l">${monthTxt}</div><div class="v num">${hhmm(tot)} h</div></div><div class="stat"><div class="l">Cena práce</div><div class="v num">${eur(totC)}</div></div></div>
   ${repTab === "workers" ? `<div class="tablewrap"><table>
-    <thead><tr><th>Pracovník</th><th>Typ</th><th class="r">Dni</th><th class="r">Hodiny</th><th class="r">Cena práce</th><th class="r">Dovolenka</th><th class="r">PN</th><th class="r">Voľno</th><th class="r">Upravené</th></tr></thead>
-    <tbody>${workers.map(({w, s, abs, perP}) => `<tr><td><b>${esc(w.name)}</b></td><td>${w.type === "TPP" ? "TPP" : "živnostník"}</td><td class="r num">${s.days.size}</td><td class="r num">${hhmm(s.ms)}</td><td class="r num"><b>${eur(s.cost)}</b></td>
+    <thead><tr><th>Pracovník</th><th>Typ</th><th class="r">Dni</th><th class="r">Hodiny</th><th class="r">Cena práce</th><th class="r">Zálohy</th><th class="r">Hotovosť</th><th class="r">Prenos</th><th class="r">Doplatiť</th><th class="r">Bez dokladu</th><th class="r">Dovolenka</th><th class="r">PN</th><th class="r">Voľno</th><th class="r">Upravené</th></tr></thead>
+    <tbody>${workers.map(({w, s, abs, perP, pay: o, owed}) => `<tr><td><a href="#" data-act="wsheet" data-id="${w.id}" style="color:inherit"><b>${esc(w.name)}</b></a></td><td>${w.type === "TPP" ? "TPP" : "živnostník"}</td><td class="r num">${s.days.size}</td><td class="r num">${hhmm(s.ms)}</td><td class="r num"><b>${eur(o.labor)}</b></td>
+      <td class="r num">${o.adv ? "− " + eur(o.adv) : ""}</td><td class="r num">${sgn(o.cash)}</td><td class="r num neg">${o.carry ? "− " + eur(-o.carry) : ""}</td><td class="r">${payCell(o.pay)}</td>
+      <td class="r num">${owed.n ? `<span class="${owed.late ? "neg" : "warnc"}">${eur(owed.sum)}</span> <button class="btn sm noprint" data-act="cash-deduct-w" data-id="${w.id}">Odrátať</button>` : ""}</td>
       <td class="r num">${abs ? abs.dovolenka || "" : "–"}</td><td class="r num">${abs ? abs.PN || "" : "–"}</td><td class="r num">${abs ? abs.volno || "" : "–"}</td><td class="r num ${s.edited ? "flag" : ""}">${s.edited ? "! " + s.edited : ""}</td></tr>
-      ${[...perP.entries()].map(([k, o]) => `<tr class="sub"><td colspan="3" style="padding-left:28px">${esc(k === "ine" ? "Iné" : project(k)?.name)}</td><td class="r num">${hhmm(o.ms)}</td><td class="r num">${eur(o.cost)}</td><td colspan="4"></td></tr>`).join("")}`).join("")}</tbody>
-    <tfoot><tr><td colspan="3">Spolu</td><td class="r num">${hhmm(tot)}</td><td class="r num">${eur(totC)}</td><td colspan="4"></td></tr></tfoot></table></div>
+      ${[...perP.entries()].map(([k, o]) => `<tr class="sub"><td colspan="3" style="padding-left:28px">${esc(k === "ine" ? "Iné" : project(k)?.name)}</td><td class="r num">${hhmm(o.ms)}</td><td class="r num">${eur(o.cost)}</td><td colspan="9"></td></tr>`).join("")}`).join("")}</tbody>
+    <tfoot><tr><td colspan="3">Spolu</td><td class="r num">${hhmm(tot)}</td><td class="r num">${eur(T0.labor)}</td><td class="r num">${T0.adv ? "− " + eur(T0.adv) : ""}</td><td class="r num">${sgn(T0.cash)}</td><td class="r num">${T0.carry ? "− " + eur(-T0.carry) : ""}</td>
+      <td class="r"><b class="num pos">${eur(T0.pos)}</b>${T0.neg ? `<br><b class="num neg">mínus ${eur(-T0.neg)}</b>` : ""}</td><td class="r num">${T0.owed ? eur(T0.owed) : ""}</td><td colspan="4"></td></tr></tfoot></table></div>
+    <p class="muted small"><b class="pos">Doplatiť</b> = cena práce − zálohy ± hotovosť (nákup za svoje +, zvyšok strhnutý z výplaty −) − mínus z minulého mesiaca. <b class="neg">Mínus</b> sa sám prenesie do ďalšieho mesiaca. Bez dokladu = hotovosť, ktorú pracovník ešte nevyúčtoval (pohľadávka).</p>
     <p class="muted small">Neprítomnosť je v pracovných dňoch (po–pi) a len pre TPP.</p>`
   : `<div class="tablewrap"><table>
     <thead><tr><th>Zákazka</th><th class="r">Hodiny</th><th class="r">Cena práce</th><th>Rozpočet (celkové čerpanie)</th></tr></thead>
@@ -583,11 +857,13 @@ RENDER.vykazy = async main => {
       : `<tr><td colspan="4" class="empty">Žiadne záznamy.</td></tr>`}</tbody>
     <tfoot><tr><td>Spolu</td><td class="r num">${hhmm(tot)}</td><td class="r num">${eur(totC)}</td><td></td></tr></tfoot></table></div>`}`;
 };
-function exportXlsx() {
-  const all = cache.entries; const {workers, projects} = reportData(all);
+async function exportXlsx() {
+  const all = cache.entries; const pay = await payroll(flt.month); const {workers, projects} = reportData(all, pay);
   const wb = XLSX.utils.book_new();
-  const s1 = [["Pracovník", "Typ", "Dni", "Hodiny", "Cena práce €", "Dovolenka (dni)", "PN (dni)", "Voľno (dni)", "Upravené záznamy"],
-    ...workers.map(({w, s, abs}) => [w.name, w.type === "TPP" ? "TPP" : "živnostník", s.days.size, hoursDec(s.ms), Math.round(s.cost * 100) / 100, abs?.dovolenka ?? "", abs?.PN ?? "", abs?.volno ?? "", s.edited])];
+  const s1 = [["Pracovník", "Typ", "Dni", "Hodiny", "Cena práce €", "Zálohy €", "Hotovosť ± €", "Prenos mínusu €", "Doplatiť €", "Bez dokladu €", "Dovolenka (dni)", "PN (dni)", "Voľno (dni)", "Upravené záznamy"],
+    ...workers.map(({w, s, abs, pay: o, owed}) => [w.name, w.type === "TPP" ? "TPP" : "živnostník", s.days.size, hoursDec(s.ms), o.labor, o.adv, o.cash, o.carry, o.pay, r2(owed.sum), abs?.dovolenka ?? "", abs?.PN ?? "", abs?.volno ?? "", s.edited])];
+  s1.push(["SPOLU", "", "", hoursDec(workers.reduce((a, x) => a + x.s.ms, 0)), ...["labor", "adv", "cash", "carry", "pay"].map(k => r2(workers.reduce((a, x) => a + x.pay[k], 0))), r2(workers.reduce((a, x) => a + x.owed.sum, 0))]);
+  const s4 = [["Dátum", "Pracovník", "Záloha €", "Poznámka"], ...ADV.filter(a => a.paid_on.slice(0, 7) === flt.month).map(a => [dFull(a.paid_on), wName(a.worker_id), +a.amount, a.note || ""])];
   const s2 = [["Zákazka", "Pracovník", "Hodiny", "Cena práce €", "Rozpočet €", "Čerpanie celkom €"]];
   projects.forEach(({k, p, s, perW}) => {
     s2.push([p ? p.name : "Iné", "SPOLU", hoursDec(s.ms), Math.round(s.cost * 100) / 100, p?.budget ?? "", p?.budget ? Math.round((cache.budget[k] || 0) * 100) / 100 : ""]);
@@ -596,7 +872,7 @@ function exportXlsx() {
   const s3 = [["Dátum", "Pracovník", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Hodiny", "Sadzba €/h", "Cena €", "Upravené", "Pôvodný príchod", "Pôvodný odchod"],
     ...all.map(e => [dFull(e.start_at), wName(e.worker_id), hm(e.start_at), e.end_at ? hm(e.end_at) : "v práci", projName(e), e.task_num, taskName(e.task_num), e.note,
       hoursDec(workedMs(e)), rateFor(e), Math.round(costOf(e) * 100) / 100, e.edited ? "ÁNO" : "", e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : ""])];
-  [[s1, "Pracovníci"], [s2, "Zákazky"], [s3, "Záznamy"]].forEach(([d, n]) => { const ws = XLSX.utils.aoa_to_sheet(d); ws["!cols"] = d[0].map(() => ({wch: 16})); XLSX.utils.book_append_sheet(wb, ws, n); });
+  [[s1, "Pracovníci"], [s2, "Zákazky"], [s3, "Záznamy"], [s4, "Zálohy"]].forEach(([d, n]) => { const ws = XLSX.utils.aoa_to_sheet(d); ws["!cols"] = d[0].map(() => ({wch: 16})); XLSX.utils.book_append_sheet(wb, ws, n); });
   XLSX.writeFile(wb, `dochadzka-${flt.month}.xlsx`);
 }
 
@@ -630,6 +906,9 @@ function openWorker(id) {
     <div class="field full"><label for="wNote">Poznámka</label><input id="wNote" value="${esc(w.note)}"></div>
     <label class="check full"><input type="checkbox" id="wActive" ${w.active ? "checked" : ""}><div><b>Aktívny</b><span>Neaktívny pracovník sa nevie prihlásiť, jeho záznamy ostávajú.</span></div></label>
   </form>
+  ${id ? (() => { const adv = ADV.filter(a => a.worker_id === id).slice(0, 12);
+    return `<div class="card" style="padding:12px"><div class="bar"><h3 style="flex:1">Zálohy</h3><button class="btn sm" data-act="adv-new" data-id="${id}">+ Záloha</button></div>
+    ${adv.length ? `<table><tbody>${adv.map(a => `<tr><td class="num">${dFull(a.paid_on)}</td><td class="r num"><b>${eur(a.amount)}</b></td><td class="muted">${esc(a.note || "")}</td><td class="r"><button class="btn sm danger" data-act="adv-del" data-id="${a.id}" data-w="${id}">Zmazať</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted" style="margin:6px 0 0">Žiadne zálohy.</p>`}</div>`; })() : ""}
   ${id && w.type === "TPP" ? `<div class="card" style="padding:12px"><h3>Neprítomnosť</h3>
     <form class="bar" data-form="absence" data-id="${id}" style="margin:8px 0">
       <select id="aKind">${Object.entries(KIND).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select>
@@ -666,9 +945,9 @@ async function activateWorker(id) {
 // zmazať sa dá len pracovník bez záznamov dochádzky – inak by zmizli z výkazov
 async function deleteWorker(id) {
   const used = await q(sb.from("entries").select("id").eq("worker_id", id).limit(1));
-  if (used.length) {
-    if (!worker(id).active) return toast("Pracovník má záznamy dochádzky, preto ostáva ako neaktívny.", true);
-    if (!confirm("Pracovník má záznamy dochádzky, preto sa nedá zmazať (zmizli by z výkazov). Označiť ho ako neaktívneho? Nebude sa vedieť prihlásiť a zo zoznamu sa schová.")) return;
+  if (used.length || ADV.some(a => a.worker_id === id) || CASH.some(c => c.worker_id === id)) {
+    if (!worker(id).active) return toast("Pracovník má záznamy (dochádzka alebo peniaze), preto ostáva ako neaktívny.", true);
+    if (!confirm("Pracovník má záznamy dochádzky alebo záloh, preto sa nedá zmazať (zmizli by z výkazov). Označiť ho ako neaktívneho? Nebude sa vedieť prihlásiť a zo zoznamu sa schová.")) return;
     const saved = await q(sb.from("workers").update({active: false}).eq("id", id).select().single());
     W = W.map(w => w.id === id ? saved : w); closeModal(); toast("Pracovník je neaktívny"); go(); return;
   }
@@ -703,11 +982,11 @@ RENDER.zakazky = async main => {
   main.innerHTML = `<div class="head"><h1>Zákazky</h1><button class="btn accent" data-act="project-new">+ Nová zákazka</button></div>
   <div class="tablewrap"><table><thead><tr><th>Zákazka</th><th>Poloha</th><th>Rozpočet</th><th></th></tr></thead>
   <tbody>${P.length ? P.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u);
-    return `<tr class="click" data-act="project" data-id="${p.id}" style="${p.active ? "" : "opacity:.55"}">
+    return `<tr class="click" data-act="pdetail" data-id="${p.id}" style="${p.active ? "" : "opacity:.55"}">
     <td><b>${esc(p.name)}</b>${p.active ? "" : ` <span class="tag">ukončená</span>`}<br><span class="small muted">${esc(p.address || "")}</span></td>
     <td>${p.lat != null ? `<span class="tag go">na mape · ${p.radius || C.default_radius} m</span>` : `<span class="tag warn">bez polohy</span>`}</td>
     <td style="min-width:200px">${s ? `<div class="meter ${s.cls}"><i style="width:${Math.min(100, s.pct)}%"></i></div><span class="small ${s.cls === "over" ? "flag" : s.cls ? "warnc" : "muted"}">${eur(u)} z ${eur(p.budget)} · ${Math.round(s.pct)} %</span>` : `<span class="muted">–</span>`}</td>
-    <td class="r"><span class="btn sm">Upraviť</span></td></tr>`; }).join("")
+    <td class="r"><button class="btn sm" data-act="project" data-id="${p.id}">Upraviť</button></td></tr>`; }).join("")
     : `<tr><td colspan="4" class="empty">Zatiaľ žiadne zákazky.</td></tr>`}</tbody></table></div>`;
 };
 let pMap = null, pMarker = null, pCircle = null;
@@ -756,6 +1035,178 @@ async function saveProject() {
     P = P.filter(p => p.id !== saved.id).concat(saved).sort((a, b) => a.name.localeCompare(b.name, "sk"));
     closeModal(); toast("Uložené"); go();
   } catch (e) { toast(errMsg(e), true); }
+}
+
+/* =====================================================================
+   DETAIL ZÁKAZKY – rozpočet, tempo, kto tu robí, čo sa robilo
+   ===================================================================== */
+RENDER.zakazka = async main => {
+  const p = project(viewArg.id); if (!p) { location.hash = "#zakazky"; return; }
+  const rows = await fetchAll(() => sb.from("entries").select("*").eq("project_id", p.id).order("start_at"));
+  const now = Date.now(), tk = dateKey(now), ym = curMonth();
+  const sumMs = l => l.reduce((a, e) => a + workedMs(e), 0), sumC = l => l.reduce((a, e) => a + costOf(e), 0);
+  const month = rows.filter(e => ymOf(e.start_at) === ym), today = rows.filter(e => dateKey(e.start_at) === tk);
+  const used = sumC(rows), st = budgetState(p, used);
+  // tempo: priemer za odpracované dni za posledné 2 týždne
+  const recent = rows.filter(e => ms(e.start_at) > now - 14 * 864e5);
+  const days = new Set(recent.map(e => dateKey(e.start_at))).size;
+  const perDay = days ? sumC(recent) / days : 0;
+  const left = p.budget ? p.budget - used : null;
+  const daysLeft = perDay && left > 0 ? Math.ceil(left / perDay) : null;
+  const nowHere = rows.filter(e => !e.end_at && workedMs(e) <= C.max_shift_hours * 36e5);
+  const perT = [...summarize(month, e => e.task_num).entries()].sort((a, b) => b[1].ms - a[1].ms);
+  const photos = today.flatMap(e => (e.photos || []).map(ph => ({ph, e}))).slice(-12);
+  const notes = today.filter(e => e.note);
+  const monthName = new Date().toLocaleDateString("sk-SK", {month: "long"});
+  const c = st ? (st.cls === "over" ? "var(--flag)" : st.cls ? "var(--warn)" : "var(--go)") : "var(--line)";
+  main.innerHTML = `
+  <section class="hero"><a href="#prehlad" style="color:inherit;text-decoration:none;opacity:.8">‹ Kto je kde</a>
+    <h1>${esc(p.name)}</h1><div class="sub">${esc(p.address || "")}${p.lat != null ? (p.address ? " · " : "") + "okruh " + (p.radius || C.default_radius) + " m" : ""}${p.active ? "" : " · ukončená"}</div></section>
+  ${p.budget ? `<section class="card" style="border:2px solid ${c};display:flex;flex-direction:column;gap:10px">
+    <div class="kv"><span class="muted small" style="text-transform:uppercase;letter-spacing:.08em">Rozpočet na prácu</span><b style="color:${c}">${Math.round(st.pct)} %</b></div>
+    <div class="meter ${st.cls}" style="height:12px"><i style="width:${Math.min(100, st.pct)}%"></i></div>
+    <div class="kv"><span>Minuté <b class="num">${eur(used)}</b></span><span>z ${eur(p.budget)}</span></div>
+    <div class="muted">${left <= 0 ? `<b class="neg">Rozpočet je prekročený o ${eur(-left)}.</b>` : daysLeft ? `Zostáva ${eur(left)}. Pri terajšom tempe (≈ ${eur(perDay)} za deň) sa minie o ${daysLeft} ${daysLeft === 1 ? "pracovný deň" : daysLeft < 5 ? "pracovné dni" : "pracovných dní"}.` : `Zostáva ${eur(left)}.`}</div>
+  </section>` : `<div class="card muted">Zákazka nemá zadaný rozpočet. <button class="btn sm" data-act="project" data-id="${p.id}">Zadať rozpočet</button></div>`}
+  <div class="stats">
+    <div class="stat"><div class="l">Dnes</div><div class="v num">${hhmm(sumMs(today))} h</div></div>
+    <div class="stat"><div class="l">${monthName}</div><div class="v num">${Math.round(sumMs(month) / 36e5)} h</div><div class="small muted">${eur(sumC(month))}</div></div>
+    <div class="stat"><div class="l">Celkom</div><div class="v num">${Math.round(sumMs(rows) / 36e5)} h</div><div class="small muted">${eur(used)}</div></div>
+  </div>
+  <section class="pcard"><div class="left" style="border:0;text-transform:uppercase;letter-spacing:.08em">Teraz tu pracujú</div>
+    ${nowHere.length ? nowHere.map(e => `<button class="person" data-act="wsheet" data-id="${e.worker_id}"><span class="tn">${e.task_num}</span><span class="mid"><span class="nm">${esc(wName(e.worker_id))}${e.edited ? ` <span class="flag">!</span>` : ""}</span><span class="wh" style="display:block">${esc(taskName(e.task_num))} · od ${hm(e.start_at)}${e.edited && e.start_orig ? ` <span class="flag">(pôvodne ${hm(e.start_orig)})</span>` : ""}</span></span><span class="rt hrs num">${hhmm(workedMs(e))}</span></button>`).join("") : `<div class="left">Nikto.</div>`}</section>
+  <section class="card"><div class="muted small" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Čo sa tu robilo (${monthName})</div>
+    ${perT.length ? perT.map(([n, o]) => `<div class="kv"><span>${n} · ${esc(taskName(n))}</span><b class="num">${(Math.round(o.ms / 36e5 * 10) / 10).toLocaleString("sk-SK")} h · ${eur(o.cost)}</b></div>`).join("") : `<span class="muted">Tento mesiac zatiaľ nič.</span>`}</section>
+  ${photos.length || notes.length ? `<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="muted small" style="text-transform:uppercase;letter-spacing:.08em">Dnešné fotky a poznámky</div>
+    ${photos.length ? `<div class="thumbs">${photos.map(x => `<a href="#" data-act="entry" data-id="${x.e.id}"><img data-path="${esc(x.ph)}" alt="Fotka – ${esc(wName(x.e.worker_id))}"></a>`).join("")}</div>` : ""}
+    ${notes.map(e => `<div><b>${esc(wName(e.worker_id).split(" ")[0])}:</b> ${esc(e.note)}</div>`).join("")}</section>` : ""}
+  <div class="sheetbtns"><button class="btn" data-act="p-entries" data-id="${p.id}">Všetky záznamy</button><button class="btn" data-act="project" data-id="${p.id}">Upraviť zákazku</button></div>`;
+  fillThumbs(main);
+};
+async function fillThumbs(root) {
+  const imgs = [...root.querySelectorAll("img[data-path]")]; if (!imgs.length) return;
+  try {
+    const urls = await q(sb.storage.from("fotky").createSignedUrls([...new Set(imgs.map(i => i.dataset.path))], 3600));
+    const m = Object.fromEntries(urls.map(u => [u.path, u.signedUrl]));
+    imgs.forEach(i => { if (m[i.dataset.path]) i.src = m[i.dataset.path]; else i.replaceWith(Object.assign(document.createElement("span"), {className: "muted small", textContent: "fotka sa nahráva"})); });
+  } catch (e) { console.warn(e); }
+}
+
+/* =====================================================================
+   POKLADŇA – hotovosť na nákup, doklady, nákupy za vlastné
+   ===================================================================== */
+let cashFlt = {st: "open", worker: ""};
+RENDER.pokladna = async main => {
+  await loadMoney(); renderNav();
+  const cs = cashSummary(), late = CASH.filter(cashLate), rep = CASH.filter(c => c.status === "reported");
+  const rank = c => c.status === "reported" ? 0 : cashLate(c) ? 1 : cashOpen(c) ? 2 : 3;
+  const list = CASH.filter(c => (!cashFlt.worker || c.worker_id === cashFlt.worker) && (cashFlt.st === "all" || (cashFlt.st === "open") === cashOpen(c)))
+    .sort((a, b) => rank(a) - rank(b) || ms(b.issued_at) - ms(a.issued_at));
+  main.innerHTML = `
+  <div class="head"><h1>Pokladňa / doklady</h1><button class="btn accent" data-act="cash-give">Dať hotovosť</button><button class="btn" data-act="cash-xlsx">Export Excel</button></div>
+  <div class="stats">
+    <div class="stat"><div class="l">Bez dokladu (u ľudí)</div><div class="v num ${cs.n ? "warnc" : ""}">${eur(cs.sum)}</div><div class="small muted">${cs.n} ${cs.n === 1 ? "položka" : cs.n < 5 && cs.n ? "položky" : "položiek"}</div></div>
+    <div class="stat"><div class="l">Čaká na kontrolu</div><div class="v num ${rep.length ? "warnc" : ""}">${rep.length}</div></div>
+    <div class="stat"><div class="l">Po lehote ${C.cash_overdue_days} dni</div><div class="v num ${late.length ? "flag" : ""}">${late.length}</div></div>
+  </div>
+  <div class="bar">${[["open", "Nevybavené"], ["done", "Vybavené"], ["all", "Všetko"]].map(([k, t]) => `<button class="chip ${cashFlt.st === k ? "on" : ""}" data-act="cash-st" data-t="${k}">${t}</button>`).join("")}
+    <select id="fCashWorker" aria-label="Pracovník"><option value="">Všetci</option>${W.filter(w => w.active || CASH.some(c => c.worker_id === w.id)).map(w => `<option value="${w.id}" ${cashFlt.worker === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
+  ${list.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));align-items:start">${list.map(cashCard).join("")}</div>` : `<div class="card empty">${cashFlt.st === "open" ? "Všetko je vyúčtované." : "Nič tu nie je."}</div>`}
+  <p class="muted small">Drobný zvyšok do ${eur(C.cash_writeoff_limit ?? 2)} sa pri potvrdení dokladu odpíše sám. Limit a lehotu zmeníš v Nastaveniach.</p>`;
+  fillThumbs(main);
+};
+function cashCard(c) {
+  const own = c.kind === "own", rest = c.spent != null ? r2(c.given - c.spent) : null;
+  const ageD = Math.floor((Date.now() - ms(c.issued_at)) / 864e5);
+  return `<div class="citem ${cashLate(c) ? "late" : c.status === "reported" ? "rep" : ""}">
+    <div class="top"><b>${esc(wName(c.worker_id))}${c.purpose ? " – " + esc(c.purpose) : ""}</b><span class="amt num">${eur(own ? c.spent : c.given)}</span></div>
+    <div class="small"><span class="tag ${c.status === "done" ? "go" : cashLate(c) ? "flag" : "warn"}">${cashStatusTxt(c)}</span>
+      <span class="muted">${own ? "kúpil za vlastné" : "dal som"} ${dFull(c.issued_at)}${cashOpen(c) && !own ? ` · ${ageD ? ageD + " d" : "dnes"}` : ""}</span></div>
+    ${!own && c.spent != null ? `<div>Minul <b class="num">${eur(c.spent)}</b> · ${rest >= 0 ? `zvyšok <b class="num">${eur(rest)}</b>` : `<span class="neg">minul o ${eur(-rest)} viac</span>`}</div>` : ""}
+    ${c.worker_note ? `<div class="muted">„${esc(c.worker_note)}“</div>` : ""}
+    ${c.admin_note ? `<div class="small warnc">Moja poznámka: ${esc(c.admin_note)}</div>` : ""}
+    ${c.photos?.length ? `<div class="thumbs">${c.photos.map(ph => `<a href="#" data-act="cash-photo" data-path="${esc(ph)}"><img data-path="${esc(ph)}" alt="Bloček"></a>`).join("")}</div>` : ""}
+    <div class="bar">${c.status === "reported" ? `<button class="btn primary" data-act="cash-ok" data-id="${c.id}">Doklad OK</button><button class="btn" data-act="cash-return" data-id="${c.id}">Vrátiť</button>`
+      : cashOpen(c) ? `<button class="btn" data-act="cash-deduct" data-id="${c.id}">Odrátať z výplaty</button><button class="btn danger sm" data-act="cash-del" data-id="${c.id}">Zmazať</button>`
+      : `<span class="small muted">${c.settled_at ? "vybavené " + dFull(c.settled_at) : ""}${cashPay(c) ? ` · výplata ${cashPay(c) > 0 ? "+" : "−"} ${eur(Math.abs(cashPay(c)))}` : ""}</span><button class="btn sm" data-act="cash-reopen" data-id="${c.id}">Otvoriť znova</button>`}</div>
+  </div>`;
+}
+function openCashGive(wid) {
+  modal("Dať hotovosť na nákup", `<form class="form" data-form="cash-give">
+    <div class="field full"><label for="cgWorker">Komu</label><select id="cgWorker">${W.filter(w => w.active).map(w => `<option value="${w.id}" ${w.id === wid ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
+    <div class="field"><label for="cgAmount">Suma €</label><input id="cgAmount" type="number" inputmode="decimal" min="0.01" step="0.01" required></div>
+    <div class="field"><label for="cgPurpose">Na čo</label><input id="cgPurpose" placeholder="napr. skrutky, silikón"></div>
+    <p class="full muted small" style="margin:0">Pracovník to uvidí v appke a pošle fotku bločku. Kým doklad neschváliš, svieti to ako nevyúčtované.</p>
+  </form>`, `<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="cash-give-save">Zapísať</button>`);
+}
+async function saveCashGive() {
+  const f = $("[data-form=cash-give]"); const amt = r2(f.cgAmount.value);
+  if (!(amt > 0)) return toast("Zadaj sumu", true);
+  const row = await q(sb.from("cash_items").insert({company_id: C.id, worker_id: f.cgWorker.value, kind: "issued", given: amt, purpose: f.cgPurpose.value.trim()}).select().single());
+  CASH = [row, ...CASH]; closeModal(); toast(wName(row.worker_id) + ": " + eur(amt) + " na nákup"); go();
+}
+async function updCash(id, row, msg) {
+  const saved = await q(sb.from("cash_items").update(row).eq("id", id).select().single());
+  CASH = CASH.map(c => c.id === id ? saved : c); closeModal(); if (msg) toast(msg); go();
+}
+function openCashOk(id) {
+  const c = CASH.find(x => x.id === id), lim = +(C.cash_writeoff_limit ?? 2);
+  const rest = r2(c.given - c.spent);
+  let txt, btns;
+  const b = (mode, t, cls = "") => `<button class="btn ${cls}" data-act="cash-settle" data-id="${id}" data-mode="${mode}">${t}</button>`;
+  if (c.kind === "own") { txt = `${esc(wName(c.worker_id))} kúpil za vlastné peniaze za <b>${eur(c.spent)}</b>. Suma sa mu pripočíta k výplate.`; btns = b("payroll", "Potvrdiť", "primary"); }
+  else if (rest < 0) { txt = `Minul o <b>${eur(-rest)}</b> viac, ako dostal. Rozdiel sa mu pripočíta k výplate.`; btns = b("payroll", "Potvrdiť", "primary"); }
+  else if (rest === 0) { txt = `Dostal ${eur(c.given)}, minul ${eur(c.spent)}. Sedí na cent.`; btns = b("none", "Potvrdiť", "primary"); }
+  else if (rest <= lim) { txt = `Zvyšok <b>${eur(rest)}</b> je do ${eur(lim)}, odpíše sa.`; btns = b("writeoff", "Potvrdiť", "primary"); }
+  else { txt = `Dostal ${eur(c.given)}, minul ${eur(c.spent)}. <b>Zvyšok ${eur(rest)}</b> – čo s ním?`; btns = b("returned", "Vrátil mi ho", "primary") + b("payroll", "Strhnúť z výplaty") + b("writeoff", "Odpísať"); }
+  modal("Doklad OK – " + wName(c.worker_id), `<p style="margin:0">${txt}</p>`, `<button class="btn" data-act="close">Zrušiť</button><span class="grow"></span>${btns}`);
+}
+async function exportCash() {
+  const st = c => cashStatusTxt(c);
+  const d = [["Dátum", "Pracovník", "Druh", "Na čo", "Dané €", "Minuté €", "Zvyšok €", "Stav", "Vybavené dňa", "Vplyv na výplatu €", "Poznámka pracovníka", "Moja poznámka", "Fotiek"],
+    ...CASH.map(c => [dFull(c.issued_at), wName(c.worker_id), c.kind === "own" ? "za vlastné" : "hotovosť", c.purpose, +c.given, c.spent == null ? "" : +c.spent,
+      c.spent == null || c.kind === "own" ? "" : r2(c.given - c.spent), st(c), c.settled_at ? dFull(c.settled_at) : "", cashPay(c) || "", c.worker_note || "", c.admin_note || "", (c.photos || []).length])];
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(d); ws["!cols"] = d[0].map(() => ({wch: 16}));
+  XLSX.utils.book_append_sheet(wb, ws, "Pokladňa"); XLSX.writeFile(wb, `pokladna-${dateKey(Date.now())}.xlsx`);
+}
+
+/* =====================================================================
+   ZÁLOHY
+   ===================================================================== */
+const advPay = {};
+function openAdvance(wid) {
+  Object.keys(advPay).forEach(k => delete advPay[k]);
+  modal("Záloha", `<form class="form" data-form="advance">
+    <div class="field full"><label for="adWorker">Pracovník</label><select id="adWorker">${W.filter(w => w.active || w.id === wid).map(w => `<option value="${w.id}" ${w.id === wid ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
+    <div class="field"><label for="adAmount">Suma €</label><input id="adAmount" type="number" inputmode="decimal" min="0.01" step="0.01" required></div>
+    <div class="field"><label for="adDate">Dátum</label><input id="adDate" type="date" value="${dateKey(Date.now())}" required></div>
+    <div class="field full"><label for="adNote">Poznámka</label><input id="adNote" placeholder="nepovinné"></div>
+    <div class="full" id="adInfo"></div>
+  </form>`, `<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="adv-save">Uložiť zálohu</button>`);
+  $("#adAmount").focus(); advInfo();
+}
+async function advInfo() {
+  const f = $("[data-form=advance]"); if (!f) return;
+  const ym = (f.adDate.value || dateKey(Date.now())).slice(0, 7), wid = f.adWorker.value;
+  if (!advPay[ym]) advPay[ym] = await payroll(ym);
+  const o = advPay[ym][wid] || {labor: 0, adv: 0, cash: 0, carry: 0, pay: 0};
+  const amt = r2(f.adAmount.value), after = r2(o.pay - amt);
+  const mName = new Date(ym + "-15").toLocaleDateString("sk-SK", {month: "long"});
+  const el = $("#adInfo"); if (!el) return;
+  el.innerHTML = `<div class="card" style="padding:10px 14px;${amt && after < 0 ? "border:2px solid var(--flag)" : ""}">
+    <div class="kv"><span>Zarobené (${mName})</span><b class="num">${eur(o.labor)}</b></div>
+    <div class="kv"><span>Zálohy doteraz</span><b class="num">${o.adv ? "− " + eur(o.adv) : "0 €"}</b></div>
+    ${o.cash ? `<div class="kv"><span>Hotovosť / nákupy</span><b class="num">${o.cash > 0 ? "+ " : "− "}${eur(Math.abs(o.cash))}</b></div>` : ""}
+    ${o.carry ? `<div class="kv"><span>Mínus z minulého mesiaca</span><b class="num neg">− ${eur(-o.carry)}</b></div>` : ""}
+    <div class="kv"><span>Ostáva k dobru</span><b class="num ${o.pay >= 0 ? "pos" : "neg"}">${eur(o.pay)}</b></div>
+    ${amt && after < 0 ? `<p class="flag" style="margin:6px 0 0">Záloha je o ${eur(-after)} vyššia ako zarobené. Uložiť sa dá aj tak – mínus sa prenesie do ďalšieho mesiaca.</p>` : ""}</div>`;
+}
+async function saveAdvance() {
+  const f = $("[data-form=advance]"); const amt = r2(f.adAmount.value);
+  if (!(amt > 0)) return toast("Zadaj sumu", true);
+  const row = await q(sb.from("advances").insert({company_id: C.id, worker_id: f.adWorker.value, amount: amt, paid_on: f.adDate.value, note: f.adNote.value.trim() || null}).select().single());
+  ADV = [row, ...ADV]; Object.keys(advPay).forEach(k => delete advPay[k]);
+  closeModal(); toast("Záloha " + eur(amt) + " – " + wName(row.worker_id)); go();
 }
 
 /* =====================================================================
@@ -814,6 +1265,8 @@ RENDER.nastavenia = async main => {
     <div class="field"><label for="sHour">Pripomenúť zabudnutý odchod od (hod.)</label><input id="sHour" type="number" min="0" max="23" value="${C.forgot_checkout_hour}"></div>
     <div class="field"><label for="sMax">Upozorniť po (hodinách v kuse)</label><input id="sMax" type="number" min="1" max="24" value="${C.max_shift_hours}"></div>
     <div class="field"><label for="sWarn">Upozornenie na rozpočet pri (%)</label><input id="sWarn" type="number" min="1" max="100" value="${C.budget_warn_pct}"></div>
+    <div class="field"><label for="sCashDays">Doklad za hotovosť do (dní)</label><input id="sCashDays" type="number" min="1" max="60" value="${C.cash_overdue_days ?? 3}"><span class="hint">Potom svieti na červeno</span></div>
+    <div class="field"><label for="sCashLimit">Drobný zvyšok odpísať do €</label><input id="sCashLimit" type="number" min="0" step="0.5" value="${C.cash_writeoff_limit ?? 2}"><span class="hint">Väčší zvyšok: vrátil / z výplaty / odpísať</span></div>
     <div class="full"><button class="btn primary">Uložiť nastavenia</button></div>
   </form>
   <div class="card"><h3>Appka pre pracovníkov</h3><p style="margin:6px 0">Adresa: <a href="${WORKER_APP}" target="_blank" rel="noopener">${WORKER_APP}</a>. Každý pracovník dostane vlastný odkaz v časti Pracovníci.</p></div>`;
@@ -821,7 +1274,8 @@ RENDER.nastavenia = async main => {
 async function saveSettings() {
   const f = $("[data-form=settings]");
   const row = {name: f.sName.value.trim(), gps_enabled: f.sGps.checked, breaks_enabled: f.sBreaks.checked, default_rate: +f.sRate.value || 0,
-    default_radius: +f.sRadius.value || 500, forgot_checkout_hour: +f.sHour.value, max_shift_hours: +f.sMax.value, budget_warn_pct: +f.sWarn.value || 80};
+    default_radius: +f.sRadius.value || 500, forgot_checkout_hour: +f.sHour.value, max_shift_hours: +f.sMax.value, budget_warn_pct: +f.sWarn.value || 80,
+    cash_overdue_days: +f.sCashDays.value || 3, cash_writeoff_limit: f.sCashLimit.value === "" ? 2 : +f.sCashLimit.value};
   try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); }
   catch (e) { toast(errMsg(e), true); }
 }
@@ -841,6 +1295,8 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#modalR
 /* =====================================================================
    UDALOSTI
    ===================================================================== */
+function navTo(h) { if (location.hash === h) go(); else location.hash = h; }
+document.addEventListener("input", ev => { if (ev.target.id === "adAmount") advInfo(); });
 document.addEventListener("click", async ev => {
   const el = ev.target.closest("[data-act]"); if (!el) return;
   const a = el.dataset.act, id = el.dataset.id;
@@ -852,7 +1308,7 @@ document.addEventListener("click", async ev => {
       case "auth-tab": authTab = el.dataset.t; renderAuth(); break;
       case "reset-pass": { const em = $("#fEmail").value.trim(); if (!em) return toast("Zadaj e-mail", true);
         await q(sb.auth.resetPasswordForEmail(em, {redirectTo: location.href.split("#")[0]})); renderAuth({t: "Poslali sme e-mail na zmenu hesla."}); break; }
-      case "logout": await sb.auth.signOut(); USER = null; C = null; renderAuth(); break;
+      case "logout": closeModal(); await sb.auth.signOut(); USER = null; C = null; renderAuth(); break;
       case "close": closeModal(); break;
       case "entry": await openEntry(id); break;
       case "entry-new": if (!W.length) return toast("Najprv pridaj pracovníka", true); await openEntry(null); break;
@@ -860,7 +1316,7 @@ document.addEventListener("click", async ev => {
       case "entry-del": if (!confirm("Naozaj zmazať tento záznam?")) return;
         await q(sb.from("entries").delete().eq("id", id)); cache.range = null; closeModal(); toast("Zmazané"); go(); break;
       case "rep-tab": repTab = el.dataset.t; go(); break;
-      case "xlsx": exportXlsx(); break;
+      case "xlsx": await exportXlsx(); break;
       case "pdf": window.print(); break;
       case "worker": openWorker(id); break;
       case "worker-new": openWorker(null); break;
@@ -881,6 +1337,42 @@ document.addEventListener("click", async ev => {
       case "task-del": if (!confirm("Zmazať úlohu " + el.dataset.n + "? Staré záznamy si číslo ponechajú. Radšej ju môžeš len prestať ponúkať.")) return;
         await q(sb.from("tasks").delete().eq("company_id", C.id).eq("num", +el.dataset.n)); T = T.filter(t => t.num !== +el.dataset.n); go(); break;
       case "rate-del": await q(sb.from("rates").delete().eq("id", id)); R = R.filter(r => r.id !== id); go(); break;
+      case "menu": openMenu(); break;
+      case "close-nav": closeModal(); navTo(el.getAttribute("href")); break;
+      case "wsheet": await openWorkerSheet(id); break;
+      case "pdetail": navTo("#zakazka?id=" + id); break;
+      case "p-entries": flt = {...flt, month: curMonth(), project: id, worker: "", edited: false}; navTo("#dochadzka"); break;
+      case "flt-worker": closeModal(); flt = {...flt, month: curMonth(), worker: id, project: "", edited: false}; navTo("#dochadzka"); break;
+      case "flt-edited": flt = {...flt, edited: true, worker: "", project: ""}; navTo("#dochadzka"); break;
+      case "toggle-missing": { const d = $("#dMissing"); if (d) { d.open = true; d.scrollIntoView({behavior: "smooth"}); } break; }
+      case "cash-give": openCashGive(id); break;
+      case "cash-give-save": await saveCashGive(); break;
+      case "cash-st": cashFlt.st = el.dataset.t; go(); break;
+      case "cash-ok": openCashOk(id); break;
+      case "cash-settle": await updCash(id, {status: "done", settle_mode: el.dataset.mode, settled_at: new Date().toISOString()}, "Vybavené"); break;
+      case "cash-return": { const n = prompt("Čo treba opraviť? (pracovník to uvidí v appke)", ""); if (n === null) return;
+        await updCash(id, {status: "returned", admin_note: n.trim() || null}, "Vrátené pracovníkovi"); break; }
+      case "cash-deduct": { const c = CASH.find(x => x.id === id);
+        if (!confirm(`Strhnúť ${eur(c.given)} z výplaty (${wName(c.worker_id)})? Položka sa uzavrie.`)) return;
+        await updCash(id, {status: "done", settle_mode: "payroll", settled_at: new Date().toISOString()}, "Strhne sa z výplaty"); break; }
+      case "cash-deduct-w": { const l = CASH.filter(c => c.worker_id === id && c.kind === "issued" && (c.status === "open" || c.status === "returned"));
+        const nRep = CASH.filter(c => c.worker_id === id && c.status === "reported").length;
+        if (!l.length) return toast("Doklad čaká na kontrolu – vybav ho v Pokladni", true);
+        if (!confirm(`Strhnúť z výplaty ${eur(l.reduce((a, c) => a + +c.given, 0))} – hotovosť bez dokladu (${wName(id)})?${nRep ? `\n${nRep}× doklad čaká na kontrolu, ten ostane.` : ""}`)) return;
+        // zaúčtuje sa do zobrazeného mesiaca (alebo dnes, ak je mesiac ešte otvorený)
+        const at = new Date(Math.min(Date.now(), monthRange(flt.month)[1] - 1)).toISOString();
+        for (const c of l) { const saved = await q(sb.from("cash_items").update({status: "done", settle_mode: "payroll", settled_at: at}).eq("id", c.id).select().single()); CASH = CASH.map(x => x.id === c.id ? saved : x); }
+        toast("Strhne sa z výplaty"); go(); break; }
+      case "cash-del": if (!confirm("Zmazať túto položku? (napr. ak bola zapísaná omylom)")) return;
+        await q(sb.from("cash_items").delete().eq("id", id)); CASH = CASH.filter(c => c.id !== id); go(); break;
+      case "cash-reopen": { const c = CASH.find(x => x.id === id);
+        await updCash(id, {status: c.spent != null ? "reported" : "open", settle_mode: null, settled_at: null}, "Znova otvorené"); break; }
+      case "cash-photo": { const u = await q(sb.storage.from("fotky").createSignedUrl(el.dataset.path, 3600)); window.open(u.signedUrl, "_blank", "noopener"); break; }
+      case "cash-xlsx": await exportCash(); break;
+      case "adv-new": openAdvance(id); break;
+      case "adv-save": await saveAdvance(); break;
+      case "adv-del": if (!confirm("Zmazať zálohu?")) return;
+        await q(sb.from("advances").delete().eq("id", id)); ADV = ADV.filter(a => a.id !== id); openWorker(el.dataset.w); toast("Záloha zmazaná"); break;
     }
   } catch (e) { toast(errMsg(e), true); console.error(e); }
 });
@@ -894,6 +1386,8 @@ document.addEventListener("submit", async ev => {
     else if (k === "worker") await saveWorker();
     else if (k === "project") await saveProject();
     else if (k === "entry") await saveEntry();
+    else if (k === "cash-give") await saveCashGive();
+    else if (k === "advance") await saveAdvance();
     else if (k === "task") {
       const row = {company_id: C.id, num: +f.tNum.value, name: f.tName.value.trim()};
       const t = await q(sb.from("tasks").insert(row).select().single()); T = T.concat(t).sort((a, b) => a.num - b.num); go();
@@ -915,6 +1409,8 @@ document.addEventListener("change", async ev => {
   else if (t.id === "fProject") { flt.project = t.value; go(); }
   else if (t.id === "fEdited") { flt.edited = t.checked; go(); }
   else if (t.id === "fInactive") { showInactive = t.checked; go(); }
+  else if (t.id === "fCashWorker") { cashFlt.worker = t.value; go(); }
+  else if (t.id === "adWorker" || t.id === "adDate") advInfo();
   else if (t.id === "pRadius" && pCircle) pCircle.setRadius(+t.value || C.default_radius);
   else if (t.dataset.taskName) updTask(+t.dataset.taskName, {name: t.value.trim()});
   else if (t.dataset.taskActive) updTask(+t.dataset.taskActive, {active: t.checked});
@@ -933,6 +1429,7 @@ async function start() {
   go();
 }
 start().catch(e => { renderAuth({t: errMsg(e), err: true}); });
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
 </html>

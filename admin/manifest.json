@@ -1,0 +1,15 @@
+{
+ "id": "./",
+ "name": "Dochádzka – správa",
+ "short_name": "Správa",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#ECEEEA",
+ "theme_color": "#1B1F1D",
+ "lang": "sk",
+ "icons": [
+  {"src": "../icon-192.png", "sizes": "192x192", "type": "image/png"},
+  {"src": "../icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+ ]
+}

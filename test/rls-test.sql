@@ -57,4 +57,32 @@ update entries set task_num=7; select 'by_admin', by_admin from entries;
 select 'novy kod', length(new_invite_code(:'w1'));
 select 'user_id po novom kode', user_id from workers where id=:'w1';
 select _as('00000000-0000-0000-0000-00000000000b'); select 'B entries', count(*) from entries; select new_invite_code(:'w1');
+
+-- 0003: zálohy a hotovosť
+select _as('00000000-0000-0000-0000-00000000000a');
+select invite_code as code1b from workers where id=:'w1' \gset
+insert into advances(company_id,worker_id,amount,note) values (:'ca',:'w1',300,'záloha');
+insert into cash_items(company_id,worker_id,given,purpose) values (:'ca',:'w1',100,'skrutky') returning id as c1 \gset
+insert into cash_items(company_id,worker_id,given,purpose) values (:'ca',:'w2',50,'farba') returning id as c2 \gset
+select _as('00000000-0000-0000-0000-0000000000a1', true);
+select 'claim znova', claim_invite(:'code1b') = :'w1';
+select 'worker vidi zalohy (1)', count(*) from advances;
+select 'worker vidi hotovost (1)', count(*) from cash_items;
+-- nesmie si sám zapísať zálohu ani hotovosť, ani zmeniť stav
+insert into advances(company_id,worker_id,amount) values (:'ca',:'w1',1);
+insert into cash_items(company_id,worker_id,given) values (:'ca',:'w1',1);
+update cash_items set status='done'; select 'po update stav', status from cash_items;
+select report_cash(:'c1', 95.5, array['x/y/cash-1/a.jpg'], 'bloček');
+select report_cash(:'c2', 1, null, null);   -- cudzia položka → chyba
+select report_cash(:'c1', 1, null, null);   -- už nahlásená → chyba
+select add_own_purchase(gen_random_uuid(), 12.4, 'lepidlo', null, null);
+select 'worker hotovost', kind, given, spent, status from cash_items order by kind;
+select _as('00000000-0000-0000-0000-0000000000a2', true);
+select 'cudzi zalohy (0)', count(*) from advances; select 'cudzia hotovost (0)', count(*) from cash_items;
+select add_own_purchase(gen_random_uuid(), 5, 'x', null, null);   -- nespárovaný → chyba
+select _as('00000000-0000-0000-0000-00000000000b');
+select 'B zalohy (0)', count(*) from advances; select 'B hotovost (0)', count(*) from cash_items;
+select _as('00000000-0000-0000-0000-00000000000a');
+update cash_items set status='done', settle_mode='returned', settled_at=now() where id=:'c1';
+select 'admin hotovost', count(*), count(*) filter (where status='done') from cash_items;
 reset role;

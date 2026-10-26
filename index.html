@@ -383,12 +383,14 @@ async function pull(){
     if(!me.length){ S.loggedOut=true; save(); render(); return; }
     const w=me[0]; S.loggedOut=false;
     const since=new Date(Date.now()-40*864e5).toISOString();
-    const [c,ps,ts,es]=await Promise.all([
+    const [c,ps,ts,es,cash]=await Promise.all([
       q(sb.from("companies").select("*").eq("id",w.company_id).single()),
       q(sb.from("projects").select("id,name,address,lat,lng,radius,active").eq("company_id",w.company_id).order("name")),
       q(sb.from("tasks").select("num,name,active").eq("company_id",w.company_id).order("num")),
-      q(sb.from("entries").select("*").eq("worker_id",w.id).gte("start_at",since).order("start_at"))
+      q(sb.from("entries").select("*").eq("worker_id",w.id).gte("start_at",since).order("start_at")),
+      q(sb.from("cash_items").select("*").eq("worker_id",w.id).neq("status","done").order("issued_at")).catch(()=>S.cash||[])
     ]);
+    S.cash=cash;
     S.companyId=w.company_id; S.worker={id:w.id,name:w.name,type:w.type};
     if(S.gpsConsent===null||w.gps_consent!==null) S.gpsConsent=w.gps_consent;
     S.company={name:c.name,gpsEnabled:c.gps_enabled,breaksEnabled:c.breaks_enabled,defaultRadius:c.default_radius,forgotCheckoutHour:c.forgot_checkout_hour,maxShiftHours:c.max_shift_hours};
@@ -492,7 +494,7 @@ function render(){
     <div><div class="lbl">Dnes odpracované</div><div class="big num">${h}<small>h</small>${String(m).padStart(2,"0")}<small>min</small></div></div>
     <div class="side">Tento týždeň<br><b class="num">${durShort(weekMs)} h</b><br><button class="linkbtn" data-act="history">Prehľad</button></div>
   </div>`;
-  html+=bannersHtml(e);
+  html+=bannersHtml(e)+cashHtml();
   if(e && !switching){
     html+=`<section class="card now ${brk?"onbreak":""}">
       <div class="status"><span class="pulse"></span>${brk?"Prestávka":"V práci"}</div>
@@ -539,9 +541,58 @@ function render(){
     </section>`;
   }
   html+=`<div class="sect"><span>Dnešné záznamy</span><span>ťukni pre úpravu času</span></div>
-  <div class="list">${today.length?today.slice().reverse().map(entryRow).join(""):`<div class="empty">Dnes zatiaľ nič. Ťukni na Príchod.</div>`}</div>`;
+  <div class="list">${today.length?today.slice().reverse().map(entryRow).join(""):`<div class="empty">Dnes zatiaľ nič. Ťukni na Príchod.</div>`}</div>
+  ${live()?`<button class="secbtn" data-act="own-buy">+ Nákup za vlastné peniaze</button>`:""}`;
   $("#app").innerHTML=html;
   renderSync();
+}
+/* hotovosť na nákup od zamestnávateľa a nákupy za vlastné */
+const eur=n=>new Intl.NumberFormat("sk-SK",{style:"currency",currency:"EUR"}).format(+n||0);
+function cashHtml(){
+  if(!live()||!S.cash||!S.cash.length) return "";
+  return S.cash.map(c=>{
+    if(c.status==="reported") return `<div class="banner" style="border-color:var(--line)"><p>${c.kind==="own"?"Nákup za vlastné":"Doklad za "+esc(c.purpose||"nákup")}: <b>${eur(c.spent)}</b> – čaká na kontrolu.</p></div>`;
+    return `<div class="banner ${c.status==="returned"?"red":""}">
+      <p>Máš u seba <b>${eur(c.given)}</b> na nákup${c.purpose?": "+esc(c.purpose):""}.</p>
+      ${c.status==="returned"?`<p class="err">Zamestnávateľ vrátil doklad${c.admin_note?": "+esc(c.admin_note):""}</p>`:""}
+      <button class="btn primary" data-act="cash-report" data-id="${c.id}" style="min-height:52px">Vyúčtovať – odfotiť bloček</button></div>`;
+  }).join("");
+}
+let cashDraft=null;
+function openCashSheet(id){
+  const c=id?S.cash.find(x=>x.id===id):null;
+  if(!cashDraft||cashDraft.id!==(id||cashDraft.id)||(!id&&cashDraft.kind!=="own")) cashDraft={id:id||uid(),kind:id?"issued":"own",spent:"",purpose:"",note:"",photos:[]};
+  const d=cashDraft;
+  sheet(c?"Vyúčtovať nákup":"Nákup za vlastné peniaze",`
+    ${c?`<p class="hint">Dostal si <b>${eur(c.given)}</b>${c.purpose?" na "+esc(c.purpose):""}. Zadaj, koľko si minul, a odfoť bloček.</p>`:`<p class="hint">Kúpil si niečo pre firmu za svoje? Zamestnávateľ ti to po kontrole pripočíta k výplate.</p>`}
+    <div class="field"><label for="cSpent">Minul som €</label><input id="cSpent" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${esc(d.spent)}" style="font-family:var(--display);font-size:28px;font-weight:700"></div>
+    ${c?"":`<div class="field"><label for="cPurpose">Čo si kúpil</label><input id="cPurpose" value="${esc(d.purpose)}" placeholder="napr. silikón, vrtáky"></div>`}
+    <div class="field"><label for="cNote">Poznámka (nepovinné)</label><input id="cNote" value="${esc(d.note)}"></div>
+    <div class="extras"><button class="${d.photos.length?"has":""}" data-act="cash-photo">${ICON.cam}${d.photos.length?"Bloček ("+d.photos.length+") – ďalší":"Odfotiť bloček"}</button></div>
+    ${d.photos.length?`<div class="thumbs">${d.photos.map(s=>`<img src="${s}" alt="Bloček">`).join("")}</div>`:""}
+    <button class="bigbtn go" style="min-height:58px;font-size:22px" data-act="cash-send" ${cashBusy?"disabled":""}>${cashBusy?"Odosielam…":"Odoslať"}</button>`);
+}
+function keepCashFields(){ const d=cashDraft; if(!d) return; d.spent=$("#cSpent")?.value??d.spent; d.purpose=$("#cPurpose")?.value??d.purpose; d.note=$("#cNote")?.value??d.note; }
+let cashBusy=false;
+async function sendCash(){
+  keepCashFields(); const d=cashDraft, amt=Math.round(parseFloat(String(d.spent).replace(",","."))*100)/100;
+  if(!(amt>=0)||d.spent===""){ toast("Zadaj, koľko si minul"); return; }
+  if(d.kind==="own"&&!(amt>0)){ toast("Zadaj sumu"); return; }
+  if(!d.photos.length&&!confirm("Bez fotky bločku? Zamestnávateľ ho môže vrátiť.")) return;
+  if(!online()){ toast("Bez signálu – odošli, keď budeš mať internet"); return; }
+  cashBusy=true; openCashSheet(d.kind==="own"?null:d.id);
+  try{
+    const paths=[];
+    for(let i=0;i<d.photos.length;i++){
+      const path=`${S.companyId}/${S.workerId}/cash-${d.id}/${i}-${Date.now().toString(36)}.jpg`;
+      const blob=await (await fetch(d.photos[i])).blob();
+      const {error}=await sb.storage.from("fotky").upload(path,blob,{contentType:"image/jpeg",upsert:false});
+      if(error) throw error; paths.push(path);
+    }
+    if(d.kind==="own") await q(sb.rpc("add_own_purchase",{p_id:d.id,p_spent:amt,p_purpose:(d.purpose||"").trim(),p_photos:paths,p_note:(d.note||"").trim()}));
+    else await q(sb.rpc("report_cash",{p_id:d.id,p_spent:amt,p_photos:paths,p_note:(d.note||"").trim()}));
+    cashDraft=null; cashBusy=false; closeSheet(); toast("Odoslané zamestnávateľovi"); await pull();
+  }catch(err){ cashBusy=false; toast("Nepodarilo sa odoslať: "+(err&&err.message||err)); openCashSheet(d.kind==="own"?null:d.id); }
 }
 function sameWeek(ts){ const d=new Date(); const mon=new Date(d); mon.setHours(0,0,0,0); mon.setDate(d.getDate()-((d.getDay()+6)%7)); return ts>=mon.getTime(); }
 function entryRow(e){
@@ -701,6 +752,7 @@ $("#photoInput").addEventListener("change",ev=>{
     const k=Math.min(1,1024/Math.max(img.width,img.height)); const c=document.createElement("canvas");
     c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext("2d").drawImage(img,0,0,c.width,c.height);
     const data=c.toDataURL("image/jpeg",0.6); URL.revokeObjectURL(url);
+    if(photoTarget==="cash"){ if(cashDraft){ cashDraft.photos.push(data); openCashSheet(cashDraft.kind==="own"?null:cashDraft.id); } return; }
     if(photoTarget==="cur"){ const e=openEntry(); if(e){ e.photos.push(data); queue(e); } } else if(draft) draft.photos.push(data);
     toast("Fotka pridaná"); render();
   };
@@ -751,6 +803,10 @@ document.addEventListener("click",ev=>{
     case "logout": if(S.outbox.length&&!confirm("V mobile sú neodoslané záznamy ("+S.outbox.length+"). Po odhlásení sa stratia. Odhlásiť?")) return;
       closeSheet(); if(sb) sb.auth.signOut().catch(()=>{}); S={mode:null}; save(); draft=null; render(); break;
     case "settings": openSettings(); break;
+    case "cash-report": openCashSheet(el.dataset.id); break;
+    case "own-buy": if(!online()){ toast("Funguje len so signálom"); return; } openCashSheet(null); break;
+    case "cash-photo": keepCashFields(); photoTarget="cash"; $("#photoInput").click(); break;
+    case "cash-send": sendCash(); break;
     case "history": openHistory(); break;
     case "reset": try{localStorage.removeItem(KEY);}catch(e){} S=freshState(); draft=null; switching=false; closeSheet(); render(); toast("Začínaš odznova"); break;
   }
