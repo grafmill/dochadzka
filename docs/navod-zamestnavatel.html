@@ -86,9 +86,9 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <h2><span class="n">1</span>Prvé kroky</h2>
   <ol class="steps">
     <li><span><b>Registrácia.</b> Otvor administráciu, záložka <b>Nová firma</b>: e-mail, heslo a názov firmy. Potom sa prihlasuješ e-mailom a heslom. Zabudnuté heslo sa obnoví odkazom na e-mail.</span></li>
-    <li><span><b>Nastavenia.</b> V Menu → Nastavenia zadaj základnú hodinovú sadzbu, rozhodni, či chceš zaznamenávať polohu (GPS) a prestávky, a vyplň <b>Prevádzkovateľa</b> pre časť Ochrana údajov.</span></li>
+    <li><span><b>Nastavenia.</b> V Menu → Nastavenia vyber <b>Typ práce</b> (v teréne alebo v sídle firmy), zadaj základnú hodinovú sadzbu, rozhodni, či chceš zaznamenávať polohu (GPS) a prestávky, a vyplň údaje <b>Prevádzkovateľa</b> pre časť Ochrana údajov (názov, sídlo, IČO a kontakt sú povinné). Kým nie sú vyplnené, svieti výstraha na obrazovke Kto je kde.</span></li>
     <li><span><b>Úlohy.</b> Menu → Úlohy: skontroluj zoznam prác s číslami 0–99 (napr. 5 = búranie, 7 = maľovanie). Pracovník ich v appke vyberá číslom.</span></li>
-    <li><span><b>Zákazky.</b> Pridaj stavby, ideálne s bodom na mape a rozpočtom na prácu.</span></li>
+    <li><span><b>Zákazky.</b> Pridaj zákazky, ideálne s bodom na mape a rozpočtom na prácu.</span></li>
     <li><span><b>Pracovníci.</b> Pridaj ľudí a každému pošli <b>Odkaz do mobilu</b> cez SMS alebo WhatsApp. Spolu s odkazom mu pošli aj <a href="https://grafmill.github.io/dochadzka/docs/navod-pracovnik.html">návod pre pracovníka</a>.</span></li>
   </ol>
   <p class="small muted">V mobile má administrácia dole lištu: <b>Kto je kde</b>, <b>Zákazky</b>, <b>Pokladňa</b> a <b>Menu</b> (všetko ostatné). Na počítači je menu vľavo.</p>
@@ -99,10 +99,10 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <p>Hlavná obrazovka. Obnovuje sa sama každých 30 sekúnd.</p>
   <ul>
     <li><b>Počítadlá hore:</b> koľko ľudí je v práci, koľkí neprišli, počet výstrah a koľko hotovosti je u ľudí bez dokladu.</li>
-    <li><b>Výstrahy:</b> zabudnutý odchod (niekto je v práci dlhšie, ako je limit), príchod mimo okruhu stavby, rozpočet zákazky blízko alebo nad limitom, dnešné opravy času v mobile, chýbajúci doklad po lehote a doklady čakajúce na kontrolu. Pri zabudnutom odchode je hneď tlačidlo <b>Opraviť</b>.</li>
-    <li><b>Karty zákaziek:</b> pri každej stavbe vidíš, kto tam práve je, akú úlohu robí, od kedy, koľko hodín a či je na stavbe podľa GPS. Pod tým, kto tam bol dnes a už odišiel, a čerpanie rozpočtu.</li>
+    <li><b>Výstrahy:</b> zabudnutý odchod (niekto je v práci dlhšie, ako je limit), príchod mimo okruhu zákazky, rozpočet zákazky blízko alebo nad limitom, dnešné opravy času v mobile, chýbajúci doklad po lehote a doklady čakajúce na kontrolu. Pri zabudnutom odchode je hneď tlačidlo <b>Opraviť</b>.</li>
+    <li><b>Karty zákaziek:</b> pri každej zákazke vidíš, kto tam práve je, akú úlohu robí, od kedy, koľko hodín a či je na mieste podľa GPS. Pod tým, kto tam bol dnes a už odišiel, a čerpanie rozpočtu.</li>
     <li><b>Dnes nie sú v práci:</b> kto ešte neprišiel, kto má dovolenku alebo PN a kto už odišiel (s časom a hodinami).</li>
-    <li><b>Mapa:</b> stavby s okruhom a body, kde sa pracovníci prihlásili pri Príchode. Nie je to živé sledovanie, je to miesto z okamihu Príchodu.</li>
+    <li><b>Mapa:</b> zákazky s okruhom a body, kde sa pracovníci prihlásili pri Príchode. Nie je to živé sledovanie, je to miesto z okamihu Príchodu.</li>
   </ul>
   <div class="card">
     <h3>Ťuk na meno pracovníka</h3>
@@ -114,10 +114,16 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <h2><span class="n">3</span>Zákazky</h2>
   <ol class="steps">
     <li><span><b>+ Nová zákazka:</b> názov a adresa. Tlačidlo <b>Nájsť na mape</b> nájde adresu, bod sa dá posunúť ťuknutím do mapy.</span></li>
-    <li><span><b>Okruh (m):</b> v akej vzdialenosti od bodu sa príchod počíta ako „na stavbe“. Prázdne = podľa Nastavení (predvolene 500 m).</span></li>
+    <li><span><b>Kód:</b> krátke označenie zákazky, napríklad Z-105 alebo číslo objednávky. Slúži na QR alebo čiarový kód, ktorý pracovník naskenuje a appka zákazku prepne sama. Kód musí byť v rámci firmy jedinečný.</span></li>
+    <li><span><b>Okruh (m):</b> v akej vzdialenosti od bodu sa príchod počíta ako „na mieste“. Prázdne = podľa Nastavení (predvolene 500 m).</span></li>
     <li><span><b>Rozpočet na prácu €:</b> po zadaní sa sleduje čerpanie a pri prekročení limitu (predvolene 80 %) príde výstraha.</span></li>
     <li><span><b>Ukončená zákazka</b> sa pracovníkom v appke už neponúka, jej záznamy ostávajú.</span></li>
   </ol>
+  <div class="card">
+    <h3>Tlačiť QR kódy</h3>
+    <p>Tlačidlo <b>Tlačiť QR kódy</b> v zozname zákaziek vytlačí štítky pre všetky aktívne zákazky (názov, kód a QR). Jednu zákazku vytlačíš tlačidlom <b>Tlačiť QR</b> v jej úprave. Štítok nalep na výrobok, stroj, zákazkový list alebo k vchodu. Zákazka bez kódu dostane QR s vlastným interným označením, funguje tiež. Ak máte vlastné čiarové kódy (napr. číslo objednávky), stačí ho zadať ako Kód zákazky.</p>
+  </div>
+  <p>Pri type práce <b>v sídle firmy</b> sa pri zákazke nezadáva mapa ani okruh, v zozname vidíš namiesto polohy kód.</p>
   <p><b>Detail zákazky</b> (ťuk na zákazku): rozpočet v %, odhad, o koľko pracovných dní sa pri terajšom tempe minie, hodiny dnes / tento mesiac / celkom, kto tu teraz pracuje, čo sa tu robilo podľa úloh (hodiny a cena) a dnešné fotky a poznámky.</p>
 </section>
 
@@ -140,8 +146,9 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <h2><span class="n">5</span>Dochádzka (všetky záznamy)</h2>
   <ul>
     <li>Filtre: mesiac, pracovník, zákazka (aj „Iné“) a <b>len upravené</b>.</li>
+    <li>Ak je zapnuté zaokrúhľovanie, pod časom je sivo <b>započítané 8:00–16:30</b>. Hore je skutočný čas z mobilu, hodiny a cena sa rátajú zo započítaného.</li>
     <li>Riadok so <span class="flag">!</span> znamená, že si pracovník v mobile zmenil čas. Pod ním je pôvodný čas.</li>
-    <li>Ťuk na záznam: zmena pracovníka, dňa, príchodu, odchodu, zákazky, úlohy a poznámky. Vidíš sadzbu, cenu, polohu pri príchode (GPS ✓, alebo vzdialenosť od stavby, s odkazom na mapu) a fotky.</li>
+    <li>Ťuk na záznam: zmena pracovníka, dňa, príchodu, odchodu, zákazky, úlohy a poznámky. Vidíš sadzbu, cenu, polohu pri príchode (GPS ✓, alebo vzdialenosť od miesta zákazky, s odkazom na mapu) a fotky.</li>
     <li><b>+ Pridať záznam</b> ručne, napr. keď pracovník nemal mobil. <b>Zmazať</b> záznam úplne, aj s jeho fotkami.</li>
     <li>Keď záznam zmeníš alebo pridáš ty, pracovník ho v appke uvidí označený „zmenil zamestnávateľ“.</li>
   </ul>
@@ -156,7 +163,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   </div>
   <div class="note"><b>Doplatiť</b> = cena práce − zálohy ± hotovosť (nákup za svoje +, zvyšok strhnutý z výplaty −) − mínus z minulého mesiaca. Mínus sa do ďalšieho mesiaca prenesie sám.</div>
   <ul>
-    <li><b>Export Excel:</b> súbor so 4 hárkami: Pracovníci, Zákazky, Záznamy (každý príchod a odchod s cenou a pôvodnými časmi) a Zálohy.</li>
+    <li><b>Export Excel:</b> súbor so 4 hárkami: Pracovníci, Zákazky, Záznamy (každý príchod a odchod s cenou a pôvodnými časmi, pri zaokrúhľovaní aj započítaný príchod a odchod) a Zálohy.</li>
     <li><b>Export PDF:</b> otvorí tlač prehliadača, v ktorej zvolíš „Uložiť ako PDF“.</li>
   </ul>
 </section>
@@ -197,18 +204,23 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
     <thead><tr><th>Nastavenie</th><th>Čo robí</th><th>Predvolené</th></tr></thead>
     <tbody>
       <tr><td>Názov firmy</td><td>Ukazuje sa pracovníkom v appke a vo výkazoch.</td><td>–</td></tr>
+      <tr><td>Typ práce</td><td><b>Práca v teréne</b>: zákazky na rôznych miestach, GPS podľa nastavenia. <b>Práca v sídle firmy</b>: GPS je vždy vypnuté a pracovník sa na súhlas nepýta; bez zákaziek má len Príchod a Odchod, so zákazkami si prepína, na čom robí (aj skenovaním QR kódu); bez mapy v Kto je kde.</td><td>v teréne</td></tr>
+      <tr><td>Fotky k práci</td><td>Pracovník môže k záznamu pridať fotku. Vypnuté = tlačidlo Fotka v appke nie je.</td><td>zapnuté</td></tr>
+      <tr><td>Poznámky</td><td>Pracovník môže napísať, čo robil. Vypnuté = tlačidlo Poznámka v appke nie je.</td><td>zapnuté</td></tr>
+      <tr><td>Zaokrúhľovať čas</td><td>Nezaokrúhľovať, alebo na 5, 10, 15, 30 minút. Len prvý príchod a posledný odchod dňa, nie presun medzi zákazkami. Skutočný čas ostáva uložený.</td><td>nezaokrúhľovať</td></tr>
+      <tr><td>Ako zaokrúhľovať</td><td><b>V prospech zamestnanca</b> (príchod nadol, odchod nahor), <b>na najbližší čas</b> (pri 15 min: 8:05 → 8:00, 16:27 → 16:30) alebo <b>v prospech firmy</b> (príchod nahor, odchod nadol).</td><td>v prospech zamestnanca</td></tr>
       <tr><td>Zaznamenávať polohu (GPS)</td><td>Poloha len pri Príchode, automatický výber zákazky. Každý pracovník musí súhlasiť.</td><td>vypnuté</td></tr>
       <tr><td>Prestávky / obed</td><td>V appke sa objaví tlačidlo Prestávka. Prestávka sa neráta do hodín.</td><td>vypnuté</td></tr>
       <tr><td>Základná hodinová sadzba €</td><td>Platí, ak pracovník nemá vlastnú sadzbu ani výnimku.</td><td>0 €</td></tr>
-      <tr><td>Okruh zákazky (m)</td><td>Vzdialenosť, v ktorej sa príchod počíta ako „na stavbe“.</td><td>500 m</td></tr>
+      <tr><td>Okruh zákazky (m)</td><td>Vzdialenosť, v ktorej sa príchod počíta ako „na mieste“. Pri práci v sídle firmy sa neukazuje.</td><td>500 m</td></tr>
       <tr><td>Pripomenúť zabudnutý odchod od</td><td>Od tejto hodiny appka pripomenie Odchod.</td><td>18:00</td></tr>
       <tr><td>Upozorniť po (hodinách v kuse)</td><td>Dlhšia zmena sa ukáže ako zabudnutý odchod. Rieši aj nočné zmeny.</td><td>12 h</td></tr>
       <tr><td>Upozornenie na rozpočet pri</td><td>Pri tomto čerpaní rozpočtu zákazky príde výstraha.</td><td>80 %</td></tr>
       <tr><td>Doklad za hotovosť do</td><td>Lehota na bloček, potom svieti na červeno.</td><td>3 dni</td></tr>
       <tr><td>Drobný zvyšok odpísať do</td><td>Menší zvyšok z hotovosti sa odpíše sám.</td><td>2 €</td></tr>
-      <tr><td>GPS súradnice mazať po</td><td>Potom ostane len „na stavbe áno / nie“ a vzdialenosť.</td><td>90 dní</td></tr>
+      <tr><td>GPS súradnice mazať po</td><td>Potom ostane len „na mieste áno / nie“ a vzdialenosť.</td><td>90 dní</td></tr>
       <tr><td>Fotky k práci mazať po</td><td>Fotky k záznamom sa zmažú. Bločky z pokladne ostávajú (účtovné doklady).</td><td>365 dní</td></tr>
-      <tr><td>Prevádzkovateľ</td><td>Názov, sídlo, IČO a kontakt. Pracovník ho vidí v appke v časti Ochrana údajov.</td><td>–</td></tr>
+      <tr><td>Prevádzkovateľ</td><td>Samostatné polia: názov firmy, sídlo, IČO a kontakt (povinné), zodpovedná osoba (nepovinné). Pracovník ich vidí v appke v časti Ochrana údajov.</td><td>názov z Nastavení</td></tr>
       <tr><td>Odkaz na celú informáciu</td><td>Odkaz na tvoju informáciu o spracúvaní osobných údajov (nepovinné).</td><td>–</td></tr>
     </tbody>
   </table></div>
@@ -218,8 +230,9 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 <section id="gps">
   <h2><span class="n">11</span>Poloha a súkromie pracovníkov</h2>
   <ul>
+    <li>Pri type práce <b>v sídle firmy</b> sa poloha nezisťuje vôbec. Fotoaparát pri skenovaní QR kódu beží len počas skenovania a obraz sa nikam neposiela.</li>
     <li>Poloha sa ukladá <b>iba v okamihu Príchodu</b> (aj pri presune na inú zákazku). Pri Odchode sa neukladá. Appka nesleduje pohyb počas dňa ani mimo práce a keď je zatvorená, nebeží.</li>
-    <li>Presné súradnice sa po lehote z Nastavení zmažú, ostane len „na stavbe áno / nie“ a vzdialenosť.</li>
+    <li>Presné súradnice sa po lehote z Nastavení zmažú, ostane len „na mieste áno / nie“ a vzdialenosť.</li>
     <li>Bez súhlasu pracovníka sa záznamy ukladajú bez polohy. Pracovník môže súhlas kedykoľvek zrušiť.</li>
     <li>Appka posiela len to, čo pracovník zadá: časy, zákazku, úlohu, poznámku, prestávky, fotky, bločky a sumy. Z mobilu nič iné nečíta. Z fotiek sa odstraňujú skryté údaje vrátane miesta odfotenia.</li>
     <li>Záznamy pracovníka vidí iba administrácia firmy. Pracovníci nevidia záznamy kolegov.</li>
@@ -234,7 +247,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <div class="tablewrap"><table>
     <thead><tr><th>Oblasť</th><th>Funkcia</th></tr></thead>
     <tbody>
-      <tr><td rowspan="12">Appka pracovníka</td><td>Inštalácia na plochu (Android, iPhone), prihlásenie kódom alebo odkazom</td></tr>
+      <tr><td rowspan="15">Appka pracovníka</td><td>Inštalácia na plochu (Android, iPhone), prihlásenie kódom alebo odkazom</td></tr>
       <tr><td>Príchod jedným ťuknutím, zákazka podľa GPS alebo naposledy použitá, „Iné“ s vlastným textom</td></tr>
       <tr><td>Úloha číslom 0–99, posledné 4 úlohy na jedno ťuknutie, zoznam úloh</td></tr>
       <tr><td>Poznámka a fotky k záznamu (aj neskôr počas dňa)</td></tr>
@@ -245,13 +258,17 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
       <tr><td>Pripomienka zabudnutého odchodu (od hodiny a po dĺžke zmeny)</td></tr>
       <tr><td>Hotovosť na nákup: vyúčtovanie s fotkou bločku; nákup za vlastné peniaze</td></tr>
       <tr><td>Offline režim: záznamy počkajú v mobile a odošlú sa samy</td></tr>
+      <tr><td>Skenovanie QR alebo čiarového kódu zákazky: Príchod alebo presun jedným pohybom</td></tr>
+      <tr><td>Práca v sídle firmy: len Príchod a Odchod, alebo „Na čom robím“ so zákazkami; bez GPS, fotky a poznámka podľa nastavenia</td></tr>
+      <tr><td>Hodiny so zaokrúhlením podľa nastavenia firmy</td></tr>
       <tr><td>Súhlas s polohou a jeho zrušenie, obrazovka Ochrana údajov, označenie záznamov zmenených zamestnávateľom, odhlásenie z mobilu</td></tr>
       <tr><td rowspan="4">Kto je kde</td><td>Počty v práci / neprišli / výstrahy / hotovosť bez dokladu</td></tr>
-      <tr><td>Výstrahy: zabudnutý odchod, mimo stavby, rozpočet, opravy času, doklady</td></tr>
+      <tr><td>Výstrahy: zabudnutý odchod, mimo miesta zákazky, rozpočet, opravy času, doklady</td></tr>
       <tr><td>Ľudia zoskupení podľa zákaziek, kto odišiel, kto chýba, dovolenka a PN</td></tr>
-      <tr><td>Mapa stavieb a miest príchodu, automatická obnova každých 30 s</td></tr>
-      <tr><td rowspan="3">Zákazky</td><td>Pridanie, úprava, ukončenie, zmazanie; bod na mape a vyhľadanie adresy; okruh</td></tr>
+      <tr><td>Mapa zákaziek a miest príchodu, automatická obnova každých 30 s</td></tr>
+      <tr><td rowspan="4">Zákazky</td><td>Pridanie, úprava, ukončenie, zmazanie; bod na mape a vyhľadanie adresy; okruh</td></tr>
       <tr><td>Rozpočet na prácu s výstrahou a odhadom, kedy sa minie</td></tr>
+      <tr><td>Kód zákazky a tlač QR štítkov (všetky aktívne zákazky alebo jedna)</td></tr>
       <tr><td>Detail: kto tu je, hodiny dnes / mesiac / celkom, práca podľa úloh, dnešné fotky a poznámky</td></tr>
       <tr><td rowspan="5">Pracovníci</td><td>Pridanie, TPP / živnostník, vlastná sadzba, telefón, poznámka</td></tr>
       <tr><td>Odkaz do mobilu cez SMS / WhatsApp / kopírovanie, nový kód (odhlási starý mobil)</td></tr>
@@ -259,14 +276,14 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
       <tr><td>Neaktívny pracovník a jeho aktivácia, zmazanie pracovníka bez záznamov, stav súhlasu s GPS s dátumom</td></tr>
       <tr><td>Export údajov pracovníka (právo na prístup), anonymizácia bývalého pracovníka</td></tr>
       <tr><td rowspan="2">Dochádzka</td><td>Všetky záznamy s filtrami (mesiac, pracovník, zákazka, len upravené)</td></tr>
-      <tr><td>Ručné pridanie, úprava a zmazanie záznamu (aj s fotkami), GPS pri príchode, fotky</td></tr>
+      <tr><td>Ručné pridanie, úprava a zmazanie záznamu (aj s fotkami), GPS pri príchode, fotky, skutočný a započítaný (zaokrúhlený) čas</td></tr>
       <tr><td rowspan="3">Výkazy</td><td>Mesačný výkaz na pracovníka: hodiny, cena práce, zálohy, hotovosť, prenos mínusu, Doplatiť, neprítomnosť</td></tr>
       <tr><td>Mesačný výkaz na zákazku s rozpisom podľa pracovníkov a úloh</td></tr>
       <tr><td>Export Excel (4 hárky) a PDF cez tlač</td></tr>
       <tr><td rowspan="2">Pokladňa</td><td>Vydanie hotovosti, kontrola bločkov s fotkou, vrátenie na opravu, vyrovnanie zvyšku</td></tr>
       <tr><td>Lehota na doklad, odrátanie z výplaty, nákupy za vlastné, export Excel</td></tr>
       <tr><td>Úlohy a sadzby</td><td>Úlohy 0–99 so zapínaním v appke; sadzby: firma, pracovník, výnimky na zákazku a úlohu</td></tr>
-      <tr><td>Nastavenia</td><td>GPS, prestávky, sadzba, okruh, pripomienky, limit rozpočtu, lehota a limit pokladne, lehoty mazania GPS a fotiek, prevádzkovateľ</td></tr>
+      <tr><td>Nastavenia</td><td>Typ práce (v teréne / v sídle firmy), fotky, poznámky, zaokrúhľovanie času, GPS, prestávky, sadzba, okruh, pripomienky, limit rozpočtu, lehota a limit pokladne, lehoty mazania GPS a fotiek, prevádzkovateľ</td></tr>
     </tbody>
   </table></div>
   <p class="small muted">Zatiaľ nie je: prístup pre koncového zákazníka, viac správcov jednej firmy, živé obnovovanie bez 30-sekundového intervalu.</p>

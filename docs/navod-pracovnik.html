@@ -74,21 +74,22 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 <section class="privacy" aria-labelledby="h-udaje">
   <h2 id="h-udaje">Tvoja poloha a tvoje údaje</h2>
   <ul>
+    <li>Ak firma pracuje <b>v sídle firmy</b> (dielňa, výroba, kancelária), appka polohu nezisťuje vôbec a ani sa na súhlas nepýta.</li>
     <li><b>Poloha (GPS) sa používa, len ak ju zapol zamestnávateľ a ty si v appke ťukol „Súhlasím“.</b> Bez súhlasu appka funguje úplne rovnako, len bez polohy. Súhlas môžeš kedykoľvek zrušiť v Nastaveniach (ozubené koliesko vpravo hore).</li>
     <li><b>Poloha sa uloží iba v okamihu, keď ťukneš Príchod</b> (aj „Príchod sem“ pri presune na inú zákazku). Pri Odchode sa poloha neukladá.</li>
     <li><b>Appka ťa nesleduje.</b> Nezbiera polohu počas práce, cez prestávku, cestou ani doma. Keď je appka zatvorená, nebeží a polohu zistiť nevie.</li>
     <li>Keď appku otvoríš, mobil si zistí polohu len preto, aby ti sám ponúkol správnu zákazku. Nikam sa nepošle, kým neťukneš Príchod.</li>
     <li><b>Appka posiela len to, čo do nej sám zadáš:</b> čas príchodu a odchodu (pri oprave aj pôvodný čas), zákazku, číslo úlohy, poznámku, prestávky, fotky, ktoré sám odfotíš, a pri hotovosti sumu a bloček. K tomu polohu pri Príchode, ak si súhlasil.</li>
-    <li><b>Appka z mobilu nič iné neberie.</b> Nečíta kontakty, správy, galériu, tvoje telefónne číslo ani iné appky. Fotoaparát sa otvorí, len keď ťukneš Fotka. Z fotky sa pri odoslaní odstránia skryté údaje, aj miesto, kde bola odfotená.</li>
+    <li><b>Appka z mobilu nič iné neberie.</b> Nečíta kontakty, správy, galériu, tvoje telefónne číslo ani iné appky. Fotoaparát sa otvorí, len keď ťukneš Fotka alebo Skenovať kód. Pri skenovaní sa obraz nikam neposiela, appka z neho prečíta len kód zákazky. Z fotky sa pri odoslaní odstránia skryté údaje, aj miesto, kde bola odfotená.</li>
     <li>Tvoje meno (a telefón, ak ho máš uvedený) zapísal do systému zamestnávateľ. Tvoje záznamy vidí iba tvoj zamestnávateľ, kolegovia ich nevidia.</li>
-    <li><b>Údaje sa nedržia večne.</b> Presné súradnice sa po lehote, ktorú nastaví zamestnávateľ (predvolene 90 dní), zmažú a ostane len údaj, či bol príchod na stavbe. Fotky k práci sa tiež po čase mažú.</li>
+    <li><b>Údaje sa nedržia večne.</b> Presné súradnice sa po lehote, ktorú nastaví zamestnávateľ (predvolene 90 dní), zmažú a ostane len údaj, či bol príchod na mieste zákazky. Fotky k práci sa tiež po čase mažú.</li>
     <li>Všetko si môžeš kedykoľvek prečítať priamo v appke: <b>Nastavenia → Ochrana údajov</b>. Tam je aj, kto tvoje údaje spracúva.</li>
   </ul>
   <p class="small muted">Ako každá webová stránka, aj appka pri pripojení odovzdá serveru IP adresu a typ prehliadača. Iným firmám (napríklad Google) appka nič neposiela. Podrobnosti sú v dokumente „Informácia o spracúvaní osobných údajov“ od zamestnávateľa.</p>
 </section>
 
 <nav class="toc" aria-label="Obsah">
-  <a href="#instalacia">Inštalácia</a><a href="#prichod">Príchod</a><a href="#presun">Presun</a><a href="#odchod">Odchod</a><a href="#oprava">Oprava času</a><a href="#hotovost">Hotovosť a bločky</a><a href="#signal">Bez signálu</a><a href="#problemy">Keď niečo nejde</a>
+  <a href="#instalacia">Inštalácia</a><a href="#prichod">Príchod</a><a href="#presun">Presun</a><a href="#kod">Skenovanie kódu</a><a href="#odchod">Odchod</a><a href="#oprava">Oprava času</a><a href="#hotovost">Hotovosť a bločky</a><a href="#signal">Bez signálu</a><a href="#problemy">Keď niečo nejde</a>
 </nav>
 
 <section id="instalacia">
@@ -126,6 +127,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
     <li><span>Ťukni na zelené tlačidlo <span class="btn go">Príchod</span>. Hotovo, čas beží.</span></li>
   </ol>
   <p class="muted small">Poznámku a fotku môžeš pridať aj neskôr počas dňa. Hore vidíš, koľko máš dnes a tento týždeň odpracované.</p>
+  <div class="note"><b>Práca v sídle firmy:</b> ak zamestnávateľ nastavil prácu v sídle a nemá zákazky, máš v appke len <span class="btn go">Príchod</span> a <span class="btn stop">Odchod</span>. Ak zákazky má, vyberáš „Na čom robím“. Poznámka, fotka a úloha sa ukážu, len ak ich firma používa.</div>
 </section>
 
 <section id="presun">
@@ -138,10 +140,22 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <p class="muted small">Ak si to rozmyslíš, ťukni „Späť, ostávam na …“.</p>
 </section>
 
+<section id="kod">
+  <h2>Skenovanie kódu zákazky</h2>
+  <p>Ak má zákazka nalepený QR kód (napríklad na výrobku, stroji alebo zákazkovom liste), nemusíš ju hľadať v zozname.</p>
+  <ol class="steps">
+    <li><span>Ťukni <b>Príchod skenovaním kódu</b> (keď ešte nie si v práci) alebo <b>Skenovať kód zákazky</b> (keď už pracuješ).</span></li>
+    <li><span>Prvýkrát povoľ appke fotoaparát.</span></li>
+    <li><span>Namier mobil na kód. Appka sama zapíše Príchod, alebo ťa presunie na túto zákazku. Nič iné netreba ťukať.</span></li>
+  </ol>
+  <p class="muted small">Fotoaparát beží, len kým je skenovanie otvorené, a obraz sa nikam neposiela.</p>
+</section>
+
 <section id="odchod">
   <h2>Odchod z práce</h2>
   <p>Na konci dňa ťukni na červené tlačidlo <span class="btn stop">Odchod</span>. Appka ukáže, koľko si dnes spolu odpracoval.</p>
   <p>Ak zamestnávateľ zapol prestávky, uvidíš aj tlačidlo <b>Prestávka</b>. Ťukni ho na začiatku a na konci obeda. Čas prestávky sa neráta do odpracovaných hodín.</p>
+  <p>Ak firma zaokrúhľuje čas, hodiny v appke sú už zaokrúhlené (napríklad príchod 7:56 sa ráta od 7:45 alebo 8:00 podľa nastavenia). Zaokrúhľuje sa len ranný príchod a večerný odchod, presun medzi zákazkami nie. Pri zázname vidíš „započítané“ aj skutočný čas.</p>
   <div class="note">Zabudol si dať Odchod? Appka ti večer alebo po dlhej zmene ukáže pripomienku. Ťukni <b>Odchod teraz</b>, alebo <b>Skončil som skôr</b> a zadaj, kedy si naozaj odišiel.</div>
 </section>
 
@@ -178,6 +192,8 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
       <tr><td>Appka chce kód</td><td>Zadaj kód zo správy od zamestnávateľa. Na iPhone sa to po pridaní na plochu pýta raz.</td></tr>
       <tr><td>„Kód nesedí“</td><td>Skontroluj písmená a čísla. Ak to nepomôže, vypýtaj si nový kód.</td></tr>
       <tr><td>Nový alebo stratený mobil</td><td>Povedz zamestnávateľovi. Vytvorí ti nový kód a starý mobil sa odhlási.</td></tr>
+      <tr><td>Skenovanie nečíta kód</td><td>Povoľ fotoaparát (pri iPhone v Nastaveniach → Safari → Fotoaparát), daj kód bližšie a viac na svetlo. Inak vyber zákazku ťuknutím.</td></tr>
+      <tr><td>„Kód nepatrí žiadnej zákazke“</td><td>Zákazka je ukončená alebo kód nie je zadaný. Povedz zamestnávateľovi.</td></tr>
       <tr><td>Appka vybrala zlú zákazku</td><td>Ťukni Zmeniť pri zákazke a vyber správnu. Stačí jedno ťuknutie.</td></tr>
       <tr><td>Nechcem zdieľať polohu</td><td>Nastavenia (ozubené koliesko) → vypni „Súhlas s polohou“. Appka funguje ďalej.</td></tr>
       <tr><td>Chcem vedieť, čo sa o mne ukladá</td><td>Nastavenia → Ochrana údajov. Kópiu všetkých svojich údajov ti na požiadanie vytlačí zamestnávateľ.</td></tr>

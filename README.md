@@ -1,6 +1,6 @@
-# Dochádzka na stavbe
+# Dochádzka
 
-Dochádzka pre stavebnú firmu: mobilná appka pre pracovníkov a webová administrácia pre zamestnávateľa.
+Dochádzka pre firmy, ktoré pracujú na zákazkách (v teréne aj v sídle firmy): mobilná appka pre pracovníkov a webová administrácia pre zamestnávateľa.
 
 | Časť | Adresa (GitHub Pages) | Súbor |
 |---|---|---|
@@ -27,6 +27,12 @@ Appka v mobile: otvor odkaz od zamestnávateľa a pridaj si appku na plochu
   sa po nastaviteľnej lehote mažú, anonymizácia bývalého pracovníka, export údajov pracovníka, obrazovka „Ochrana údajov“
   v appke. Podklady a návody: [docs/gdpr.html](docs/gdpr.html), [docs/navod-pracovnik.html](docs/navod-pracovnik.html),
   [docs/navod-zamestnavatel.html](docs/navod-zamestnavatel.html).
+- **Typ práce**: *v teréne* (zákazky na rôznych miestach, GPS podľa nastavenia) alebo *v sídle firmy* (bez GPS;
+  bez zákaziek len Príchod/Odchod, so zákazkami „Na čom robím“). Fotky a poznámky sa dajú vypnúť.
+- **QR / čiarový kód zákazky**: pole Kód pri zákazke, tlač QR štítkov v administrácii, pracovník kód naskenuje
+  a appka zapíše Príchod alebo presun. Fotoaparát beží len počas skenovania, obraz sa nikam neposiela.
+- **Zaokrúhľovanie času** (5/10/15/30 min, v prospech zamestnanca / na najbližší / v prospech firmy): len prvý príchod
+  a posledný odchod, nie presun medzi zákazkami (`cont_in`/`cont_out`). Skutočný čas sa ukladá presne.
 - Bezpečnosť je v databáze (Row Level Security): pracovník vidí a zapisuje len svoje záznamy, zamestnávateľ celú svoju firmu.
 
 ## Nasadenie
@@ -39,7 +45,8 @@ spustiť migrácie na novom serveri a zmeniť `config.js`.
 
 ## Knižnice (v `vendor/`, bez CDN)
 
-supabase-js 2.117.2 (MIT), Leaflet 1.9.4 (BSD-2), SheetJS xlsx 0.18.5 mini (Apache-2.0), písma Barlow a Barlow Condensed
+supabase-js 2.117.2 (MIT), Leaflet 1.9.4 (BSD-2), SheetJS xlsx 0.18.5 mini (Apache-2.0),
+html5-qrcode 2.3.8 (Apache-2.0, čítanie QR a čiarových kódov), qrcode-generator 1.4.4 (MIT, tlač QR štítkov), písma Barlow a Barlow Condensed
 (SIL OFL, `vendor/fonts/`, bez Google Fonts). Mapové podklady © OpenStreetMap.
 
 ## Testy

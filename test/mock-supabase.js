@@ -11,12 +11,12 @@
   const AUTHKEY = "mockauth:" + (location.pathname.includes("/admin/") ? "admin" : "app");
   const session = () => JSON.parse(localStorage.getItem(AUTHKEY) || "null");
   const DEFAULTS = {
-    companies: () => ({id: uuid(), gps_enabled: false, breaks_enabled: false, default_radius: 500, default_rate: 0, forgot_checkout_hour: 18, max_shift_hours: 12, budget_warn_pct: 80, cash_writeoff_limit: 2, cash_overdue_days: 3, gps_keep_days: 90, photo_keep_days: 365, privacy_controller: null, privacy_url: null, created_at: now()}),
+    companies: () => ({id: uuid(), gps_enabled: false, breaks_enabled: false, default_radius: 500, default_rate: 0, forgot_checkout_hour: 18, max_shift_hours: 12, budget_warn_pct: 80, cash_writeoff_limit: 2, cash_overdue_days: 3, gps_keep_days: 90, photo_keep_days: 365, privacy_controller: null, privacy_url: null, round_step: 0, round_mode: "employee", work_mode: "field", photos_enabled: true, notes_enabled: true, created_at: now()}),
     workers: () => ({id: uuid(), type: "TPP", hourly_rate: null, active: true, user_id: null, invite_code: code(), gps_consent: null, gps_consent_at: null, anonymized_at: null, phone: null, note: null, created_at: now()}),
-    projects: () => ({id: uuid(), address: null, lat: null, lng: null, radius: null, budget: null, active: true, note: null, created_at: now()}),
+    projects: () => ({id: uuid(), code: null, address: null, lat: null, lng: null, radius: null, budget: null, active: true, note: null, created_at: now()}),
     tasks: () => ({active: true}),
     rates: () => ({id: uuid(), worker_id: null, project_id: null, task_num: null, created_at: now()}),
-    entries: () => ({other_text: "", task_num: 0, note: "", photos: [], end_at: null, start_orig: null, end_orig: null, edited: false, gps_start: null, gps_end: null, breaks: [], by_admin: false, created_at: now(), updated_at: now()}),
+    entries: () => ({other_text: "", task_num: 0, note: "", photos: [], end_at: null, start_orig: null, end_orig: null, edited: false, gps_start: null, gps_end: null, breaks: [], by_admin: false, cont_in: false, cont_out: false, created_at: now(), updated_at: now()}),
     absences: () => ({id: uuid(), note: null, created_at: now()}),
     advances: () => ({id: uuid(), note: null, paid_on: now().slice(0, 10), created_at: now()}),
     cash_items: () => ({id: uuid(), kind: "issued", given: 0, purpose: "", issued_at: now(), spent: null, photos: [], worker_note: null, reported_at: null, status: "open", admin_note: null, settle_mode: null, settled_at: null, created_at: now()})
