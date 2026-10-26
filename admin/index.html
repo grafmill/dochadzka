@@ -312,6 +312,15 @@ const project = id => P.find(p => p.id === id);
 const taskName = n => (T.find(t => t.num === n) || {}).name || ("Úloha " + n);
 const projName = e => e.project_id ? (project(e.project_id)?.name || "?") : ("Iné" + (e.other_text ? ": " + e.other_text : ""));
 const wName = id => worker(id)?.name || "?";
+// prevádzkovateľ (GDPR) je uložený ako JSON {name, address, ico, contact, dpo}; starší záznam = obyčajný text
+const PRIV_REQ = [["name", "Názov firmy"], ["address", "Sídlo"], ["ico", "IČO"], ["contact", "Kontakt"]];
+function privOf(c) {
+  const v = c?.privacy_controller; if (!v) return {};
+  try { const o = JSON.parse(v); if (o && typeof o === "object") return o; } catch (e) {}
+  return {legacy: v};
+}
+const privMissing = () => C && "gps_keep_days" in C ? PRIV_REQ.filter(([k]) => !String(privOf(C)[k] || "").trim()).map(x => x[1]) : [];
+const privText = c => { const p = privOf(c); return p.legacy || [p.name || c.name, p.address, p.ico && "IČO " + p.ico, p.contact, p.dpo && "zodpovedná osoba: " + p.dpo].filter(Boolean).join(", "); };
 
 function workedMs(e, now = Date.now()) {
   const end = ms(e.end_at) ?? now; let t = end - ms(e.start_at);
@@ -597,7 +606,8 @@ RENDER.prehlad = async main => {
     ...warnP.map(p => { const st = budgetState(p, budget[p.id] || 0); return `<li><b>Rozpočet</b> ${esc(p.name)}: ${Math.round(st.pct)} % ${st.cls === "over" ? "– prekročený" : "minuté"}.</li>`; }),
     ...(editedToday.length ? [`<li><b>${editedToday.length}×</b> dnes upravený čas v mobile. <a href="#dochadzka" data-act="flt-edited">Pozrieť</a></li>`] : []),
     ...(lateCash.length ? [`<li><b>Doklad chýba</b> dlhšie ako ${C.cash_overdue_days} dni: ${[...new Set(lateCash.map(c => wName(c.worker_id)))].map(esc).join(", ")}. <a href="#pokladna">Pokladňa</a></li>`] : []),
-    ...(toCheck.length ? [`<li><b>${toCheck.length}×</b> doklad čaká na kontrolu. <a href="#pokladna">Skontrolovať</a></li>`] : [])
+    ...(toCheck.length ? [`<li><b>${toCheck.length}×</b> doklad čaká na kontrolu. <a href="#pokladna">Skontrolovať</a></li>`] : []),
+    ...(privMissing().length ? [`<li><b>Ochrana údajov:</b> doplň údaje prevádzkovateľa (${privMissing().join(", ")}). <a href="#nastavenia">Nastavenia</a></li>`] : [])
   ];
   // zoskupenie podľa zákaziek: najprv tie, kde sa teraz robí
   const groups = new Map();
@@ -887,7 +897,7 @@ async function exportWorker(id) {
     ["Údaje", [["Meno", w.name], ["Telefón", w.phone || ""], ["Typ", w.type === "TPP" ? "TPP" : "živnostník"], ["Hodinová sadzba €", w.hourly_rate ?? `${C.default_rate} (základná firmy)`],
       ["Poznámka", w.note || ""], ["Aktívny", w.active ? "áno" : "nie"], ["Prihlásený v mobile", w.user_id ? "áno" : "nie"],
       ["Súhlas s polohou", w.gps_consent === true ? "áno" : w.gps_consent === false ? "nie" : "neodpovedal"], ["Čas súhlasu / odvolania", w.gps_consent_at ? dFull(w.gps_consent_at) + " " + hm(w.gps_consent_at) : ""],
-      ["Zaevidovaný", dFull(w.created_at)], ["Prevádzkovateľ", C.privacy_controller || C.name], ["Export vytvorený", dFull(Date.now()) + " " + hm(Date.now())]]],
+      ["Zaevidovaný", dFull(w.created_at)], ["Prevádzkovateľ", privText(C)], ["Export vytvorený", dFull(Date.now()) + " " + hm(Date.now())]]],
     ["Záznamy", [["Dátum", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Prestávky", "Hodiny", "Upravené pracovníkom", "Pôvodný príchod", "Pôvodný odchod", "Zmenil zamestnávateľ", "GPS pri príchode", "GPS pri odchode", "Fotky (počet)"],
       ...all.map(e => [dFull(e.start_at), hm(e.start_at), e.end_at ? hm(e.end_at) : "v práci", projName(e), e.task_num, taskName(e.task_num), e.note,
         (e.breaks || []).map(b => hm(b.start) + "–" + (b.end ? hm(b.end) : "…")).join(", "), hoursDec(workedMs(e)), e.edited ? "áno" : "",
@@ -1302,8 +1312,15 @@ RENDER.nastavenia = async main => {
     ${"gps_keep_days" in C ? `<div class="full"><h3 style="margin:8px 0 0">Ochrana osobných údajov</h3></div>
     <div class="field"><label for="sGpsKeep">GPS súradnice mazať po (dňoch)</label><input id="sGpsKeep" type="number" min="7" max="3650" value="${C.gps_keep_days}"><span class="hint">Potom ostane len „na stavbe áno / nie“ a vzdialenosť</span></div>
     <div class="field"><label for="sPhotoKeep">Fotky k práci mazať po (dňoch)</label><input id="sPhotoKeep" type="number" min="60" max="3650" value="${C.photo_keep_days}"><span class="hint">Bločky z pokladne sa nemažú (účtovné doklady)</span></div>
-    <div class="field full"><label for="sPrivCtrl">Prevádzkovateľ (ukáže sa pracovníkom v appke)</label><input id="sPrivCtrl" value="${esc(C.privacy_controller || "")}" placeholder="Názov firmy, sídlo, IČO, e-mail alebo telefón"></div>
-    <div class="field full"><label for="sPrivUrl">Odkaz na celú informáciu o spracúvaní údajov (nepovinné)</label><input id="sPrivUrl" type="url" value="${esc(C.privacy_url || "")}" placeholder="https://…"></div>`
+    ${(() => { const pv = privOf(C), m = privMissing();
+      return `<div class="full"><b>Prevádzkovateľ</b> <span class="muted small">– ukáže sa pracovníkom v appke v časti Ochrana údajov. Polia s * sú povinné.</span>
+      ${m.length ? `<div class="card flag" style="margin-top:6px;padding:8px 12px">Chýba: ${m.join(", ")}</div>` : ""}</div>
+    <div class="field"><label for="sPrivName">Názov firmy *</label><input id="sPrivName" required value="${esc(pv.name || C.name)}"></div>
+    <div class="field"><label for="sPrivIco">IČO *</label><input id="sPrivIco" required inputmode="numeric" value="${esc(pv.ico || "")}" placeholder="12345678"></div>
+    <div class="field full"><label for="sPrivAddr">Sídlo *</label><input id="sPrivAddr" required value="${esc(pv.address || pv.legacy || "")}" placeholder="Ulica a číslo, PSČ, obec"></div>
+    <div class="field"><label for="sPrivContact">Kontakt *</label><input id="sPrivContact" required value="${esc(pv.contact || "")}" placeholder="e-mail alebo telefón"><span class="hint">Kam sa pracovník obráti so žiadosťou o svoje údaje</span></div>
+    <div class="field"><label for="sPrivDpo">Zodpovedná osoba (DPO)</label><input id="sPrivDpo" value="${esc(pv.dpo || "")}" placeholder="nepovinné – meno a kontakt"></div>
+    <div class="field full"><label for="sPrivUrl">Odkaz na celú informáciu o spracúvaní údajov</label><input id="sPrivUrl" type="url" value="${esc(C.privacy_url || "")}" placeholder="nepovinné – https://…"></div>`; })()}`
     : `<div class="full card flag">Chýbajú nastavenia ochrany údajov – v Supabase treba spustiť SQL súbor 0004_gdpr.sql.</div>`}
     <div class="full"><button class="btn primary">Uložiť nastavenia</button></div>
   </form>
@@ -1315,8 +1332,9 @@ async function saveSettings() {
     default_radius: +f.sRadius.value || 500, forgot_checkout_hour: +f.sHour.value, max_shift_hours: +f.sMax.value, budget_warn_pct: +f.sWarn.value || 80,
     cash_overdue_days: +f.sCashDays.value || 3, cash_writeoff_limit: f.sCashLimit.value === "" ? 2 : +f.sCashLimit.value};
   if (f.sGpsKeep) Object.assign(row, {gps_keep_days: +f.sGpsKeep.value || 90, photo_keep_days: +f.sPhotoKeep.value || 365,
-    privacy_controller: f.sPrivCtrl.value.trim() || null, privacy_url: f.sPrivUrl.value.trim() || null});
-  try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); }
+    privacy_controller: JSON.stringify(Object.fromEntries([["name", f.sPrivName], ["address", f.sPrivAddr], ["ico", f.sPrivIco], ["contact", f.sPrivContact], ["dpo", f.sPrivDpo]]
+      .map(([k, el]) => [k, el.value.trim()]).filter(([, v]) => v))), privacy_url: f.sPrivUrl.value.trim() || null});
+  try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); if (f.sPrivName) go(); }
   catch (e) { toast(errMsg(e), true); }
 }
 

@@ -185,7 +185,7 @@ button{cursor:pointer}
    ====================================================================== */
 const DEMO = {
   company:{ name:"Stavby Novák s.r.o.", gpsEnabled:true, breaksEnabled:false, defaultRadius:500, forgotCheckoutHour:18, maxShiftHours:12,
-    privacyController:"Stavby Novák s.r.o., Hlavná 1, Bratislava, IČO 12345678, kancelaria@stavbynovak.sk", privacyUrl:"", gpsKeepDays:90, photoKeepDays:365 },
+    privacyController:JSON.stringify({name:"Stavby Novák s.r.o.",address:"Hlavná 1, 811 01 Bratislava",ico:"12345678",contact:"kancelaria@stavbynovak.sk"}), privacyUrl:"", gpsKeepDays:90, photoKeepDays:365 },
   worker:{ id:"w1", name:"Peter Kováč", type:"TPP" },   // type: "TPP" | "SZCO" (živnostník)
   projects:[
     { id:"p1", name:"Bytový dom Tomášikova", address:"Tomášikova 12, Bratislava-Ružinov", lat:48.1585, lng:17.1580, radius:500 },
@@ -709,10 +709,17 @@ function saveEdit(){
   if(ch){ e.edited=true; queue(e); toast("Čas upravený"); }
   closeSheet(); render(); if(!openEntry()&&!draft) prepareDraft();
 }
+// prevádzkovateľ: JSON {name, address, ico, contact, dpo} z administrácie; starší záznam = obyčajný text
+function privHtml(c){
+  let p={}; try{ const o=JSON.parse(c.privacyController||""); if(o&&typeof o==="object") p=o; }catch(e){ p={legacy:c.privacyController}; }
+  if(p.legacy) return " "+esc(p.legacy);
+  const lines=[p.name||c.name||"tvoj zamestnávateľ",p.address,p.ico&&"IČO "+p.ico,p.contact&&"Kontakt: "+p.contact,p.dpo&&"Zodpovedná osoba: "+p.dpo].filter(Boolean);
+  return `<br>${lines.map(esc).join("<br>")}`;
+}
 function openPrivacy(){
   const c=S.company, days=n=>n?(n%365===0?(n/365)+(n/365===1?" rok":n/365<5?" roky":" rokov"):n+" dní"):"podľa pravidiel firmy";
   sheet("Ochrana údajov",`<div class="privacy">
-    <p><b>Kto spracúva tvoje údaje:</b> ${esc((c.privacyController||c.name||"tvoj zamestnávateľ").replace(/[.\s]+$/,""))}.</p>
+    <div><b>Kto spracúva tvoje údaje:</b>${privHtml(c)}</div>
     <p><b>Na čo:</b> evidencia pracovného času a práce na zákazkách, výpočet mzdy alebo odmeny, vyúčtovanie hotovosti a dokumentácia prác.</p>
     <p><b>Čo appka posiela:</b> len to, čo zadáš: čas príchodu a odchodu (pri oprave aj pôvodný čas), zákazku, úlohu, poznámku, prestávky, fotky, ktoré sám odfotíš, a pri hotovosti sumu a bloček.</p>
     <p><b>Poloha (GPS):</b> ${c.gpsEnabled?`len ak súhlasíš, a iba v okamihu, keď ťukneš <b>Príchod</b>. Pri Odchode, počas dňa ani mimo práce sa poloha nezisťuje ani neukladá. Keď je appka zatvorená, nebeží. Súradnice sa po ${days(c.gpsKeepDays)} zmažú, ostane len údaj, či bol príchod na stavbe. Súhlas môžeš kedykoľvek zrušiť v Nastaveniach, appka funguje ďalej bez polohy.`:"zamestnávateľ ju nemá zapnutú, appka polohu nezisťuje."}</p>
