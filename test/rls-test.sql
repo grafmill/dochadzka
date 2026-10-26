@@ -85,4 +85,25 @@ select 'B zalohy (0)', count(*) from advances; select 'B hotovost (0)', count(*)
 select _as('00000000-0000-0000-0000-00000000000a');
 update cash_items set status='done', settle_mode='returned', settled_at=now() where id=:'c1';
 select 'admin hotovost', count(*), count(*) filter (where status='done') from cash_items;
+
+-- 0004: GDPR – súhlas s časom, mazanie GPS, anonymizácia
+select _as('00000000-0000-0000-0000-0000000000a1', true);
+select set_gps_consent(true); select 'cas suhlasu', gps_consent, gps_consent_at is not null from workers;
+select purge_old_gps();   -- pracovník nie je správca → chyba
+select anonymize_worker(:'w1');   -- pracovník → chyba
+select _as('00000000-0000-0000-0000-00000000000a');
+insert into entries(id,company_id,worker_id,project_id,task_num,start_at,end_at,gps_start,gps_end) values
+ ('33333333-1111-1111-1111-111111111111',:'ca',:'w1',:'p1',5,now()-interval '200 days',now()-interval '200 days'+interval '8 hours','{"lat":48.1001,"lng":17.1001,"acc":10}','{"lat":48.2,"lng":17.2,"acc":10}'),
+ ('44444444-1111-1111-1111-111111111111',:'ca',:'w1',:'p1',5,now()-interval '2 days',now()-interval '2 days'+interval '8 hours','{"lat":48.1001,"lng":17.1001,"acc":10}',null);
+select 'zmazane GPS (1)', purge_old_gps();
+select 'stary zaznam', gps_start, gps_end from entries where id='33333333-1111-1111-1111-111111111111';
+select 'novy zaznam ma lat', gps_start ? 'lat' from entries where id='44444444-1111-1111-1111-111111111111';
+select 'by_admin po purge (f)', by_admin from entries where id='33333333-1111-1111-1111-111111111111';
+select anonymize_worker(:'w1');   -- aktívny → chyba
+update workers set active=false where id=:'w1';
+select _as('00000000-0000-0000-0000-00000000000b'); select anonymize_worker(:'w1');   -- cudzí správca → chyba
+select _as('00000000-0000-0000-0000-00000000000a'); select anonymize_worker(:'w1');
+select 'anonym', name, phone, user_id, anonymized_at is not null from workers where id=:'w1';
+select 'anonym GPS', bool_and(not coalesce(gps_start ? 'lat', false)) from entries where worker_id=:'w1';
+select 'hodiny ostali', count(*) from entries where worker_id=:'w1';
 reset role;

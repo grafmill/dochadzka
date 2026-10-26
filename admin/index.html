@@ -11,8 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Správa">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
 <link rel="stylesheet" href="../vendor/leaflet-1.9.4/leaflet.css">
 <style>
 :root{
@@ -427,6 +426,9 @@ const fmtDist = m => m < 1000 ? Math.round(m / 10) * 10 + " m" : (m / 1000).toFi
 // poloha pri príchode vs. bod zákazky
 function gpsTag(e) {
   const g = e.gps_start; if (!g) return "";
+  // súradnice po lehote zmazané – ostal len výsledok kontroly
+  if (g.lat == null) return g.on_site === true ? `<span class="tag go" title="Príchod na mieste zákazky (súradnice zmazané po lehote)">GPS ✓</span>`
+    : g.on_site === false ? `<span class="tag warn" title="Súradnice zmazané po lehote">GPS ${fmtDist(g.dist)} od stavby</span>` : `<span class="tag" title="Súradnice zmazané po lehote">GPS</span>`;
   const p = project(e.project_id);
   const link = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lng}#map=17/${g.lat}/${g.lng}`;
   if (p && p.lat != null) {
@@ -558,6 +560,7 @@ let liveMap = null, liveTimer = null, live = {open: [], today: []};
 const gpsState = e => {
   if (!C.gps_enabled) return null;
   if (!e.gps_start) return {t: "bez GPS", c: "muted"};
+  if (e.gps_start.lat == null) return e.gps_start.on_site === false ? {t: fmtDist(e.gps_start.dist) + " od stavby", c: "warnc", off: e.gps_start.dist} : {t: e.gps_start.on_site ? "na stavbe" : "GPS", c: e.gps_start.on_site ? "pos" : "muted"};
   const p = project(e.project_id);
   if (!p || p.lat == null) return {t: "GPS", c: "muted"};
   const d = distM(e.gps_start, p);
@@ -640,7 +643,7 @@ RENDER.prehlad = async main => {
       ${leftToday.map(w => { const l = today.filter(e => e.worker_id === w.id); return `<button class="person" style="padding:8px 0" data-act="wsheet" data-id="${w.id}"><span class="mid">${esc(w.name)}${moneyBadge(w.id)}</span><span class="muted small">odišiel ${hm(l[l.length - 1].end_at)} · ${hhmm(l.reduce((a, e) => a + workedMs(e), 0))} h</span></button>`; }).join("")}
       ${missing.length + absentToday.length + leftToday.length ? "" : `<span class="muted">Všetci sú v práci.</span>`}
     </div></details>
-  ${P.some(p => p.active && p.lat != null) || nowOpen.some(e => e.gps_start) ? `<details class="card" id="dMap"><summary>Mapa</summary><div id="liveMap" class="map" style="margin-top:10px"></div></details>` : ""}`;
+  ${P.some(p => p.active && p.lat != null) || nowOpen.some(e => e.gps_start?.lat != null) ? `<details class="card" id="dMap"><summary>Mapa</summary><div id="liveMap" class="map" style="margin-top:10px"></div></details>` : ""}`;
   wasOpen.forEach(id => { const d = document.getElementById(id); if (d) d.open = true; });
 
   const box = $("#dMap");
@@ -653,7 +656,7 @@ RENDER.prehlad = async main => {
       L.circle([p.lat, p.lng], {radius: p.radius || C.default_radius, color: "#F2B705", weight: 2, fillOpacity: .12}).addTo(liveMap).bindTooltip(p.name);
       pts.push([p.lat, p.lng]);
     });
-    nowOpen.filter(e => e.gps_start).forEach(e => {
+    nowOpen.filter(e => e.gps_start?.lat != null).forEach(e => {
       L.circleMarker([e.gps_start.lat, e.gps_start.lng], {radius: 8, color: "#1E7F4F", fillColor: "#1E7F4F", fillOpacity: .9})
         .addTo(liveMap).bindTooltip(wName(e.worker_id), {permanent: true, direction: "right"});
       pts.push([e.gps_start.lat, e.gps_start.lng]);
@@ -760,7 +763,7 @@ async function openEntry(id) {
     <div class="field"><label for="eTask">Úloha</label><select id="eTask">${T.map(t => `<option value="${t.num}" ${t.num === e.task_num ? "selected" : ""}>${t.num} · ${esc(t.name)}</option>`).join("")}</select></div>
     <div class="field"><label>Sadzba / cena</label><div style="padding:8px 0">${eur(rateFor(e))}/h · ${isNew ? "–" : eur(costOf(e))}</div></div>
     <div class="field full"><label for="eNote">Poznámka</label><input id="eNote" value="${esc(e.note)}"></div>
-    ${e.gps_start || e.gps_end ? `<div class="full bar">${e.gps_start ? `<span>Príchod: ${gpsTag(e)}</span>` : ""}${e.gps_end ? `<a class="tag" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${e.gps_end.lat}&mlon=${e.gps_end.lng}#map=17/${e.gps_end.lat}/${e.gps_end.lng}">Odchod GPS</a>` : ""}</div>` : ""}
+    ${e.gps_start || e.gps_end?.lat != null ? `<div class="full bar">${e.gps_start ? `<span>Príchod: ${gpsTag(e)}</span>` : ""}${e.gps_end?.lat != null ? `<a class="tag" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${e.gps_end.lat}&mlon=${e.gps_end.lng}#map=17/${e.gps_end.lat}/${e.gps_end.lng}">Odchod GPS</a>` : ""}</div>` : ""}
     ${(e.breaks || []).length ? `<div class="full small muted">Prestávky: ${e.breaks.map(b => hm(b.start) + "–" + (b.end ? hm(b.end) : "…")).join(", ")}</div>` : ""}
     ${e.photos?.length ? `<div class="full photos" id="ePhotos"><span class="muted">Načítavam fotky…</span></div>` : ""}
   </form>`, `${isNew ? "" : `<button class="btn danger" data-act="entry-del" data-id="${e.id}">Zmazať</button>`}<span class="grow"></span>
@@ -876,6 +879,30 @@ async function exportXlsx() {
   XLSX.writeFile(wb, `dochadzka-${flt.month}.xlsx`);
 }
 
+// všetky údaje jedného pracovníka (žiadosť o prístup, čl. 15 GDPR)
+async function exportWorker(id) {
+  const w = worker(id), all = await fetchAll(() => sb.from("entries").select("*").eq("worker_id", id).order("start_at"));
+  const gps = g => !g ? "" : g.lat != null ? `${g.lat}, ${g.lng} (±${g.acc ?? "?"} m)` : g.on_site === true ? "na stavbe (súradnice zmazané)" : g.on_site === false ? `${g.dist} m od stavby (súradnice zmazané)` : "súradnice zmazané";
+  const sheets = [
+    ["Údaje", [["Meno", w.name], ["Telefón", w.phone || ""], ["Typ", w.type === "TPP" ? "TPP" : "živnostník"], ["Hodinová sadzba €", w.hourly_rate ?? `${C.default_rate} (základná firmy)`],
+      ["Poznámka", w.note || ""], ["Aktívny", w.active ? "áno" : "nie"], ["Prihlásený v mobile", w.user_id ? "áno" : "nie"],
+      ["Súhlas s polohou", w.gps_consent === true ? "áno" : w.gps_consent === false ? "nie" : "neodpovedal"], ["Čas súhlasu / odvolania", w.gps_consent_at ? dFull(w.gps_consent_at) + " " + hm(w.gps_consent_at) : ""],
+      ["Zaevidovaný", dFull(w.created_at)], ["Prevádzkovateľ", C.privacy_controller || C.name], ["Export vytvorený", dFull(Date.now()) + " " + hm(Date.now())]]],
+    ["Záznamy", [["Dátum", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Prestávky", "Hodiny", "Upravené pracovníkom", "Pôvodný príchod", "Pôvodný odchod", "Zmenil zamestnávateľ", "GPS pri príchode", "GPS pri odchode", "Fotky (počet)"],
+      ...all.map(e => [dFull(e.start_at), hm(e.start_at), e.end_at ? hm(e.end_at) : "v práci", projName(e), e.task_num, taskName(e.task_num), e.note,
+        (e.breaks || []).map(b => hm(b.start) + "–" + (b.end ? hm(b.end) : "…")).join(", "), hoursDec(workedMs(e)), e.edited ? "áno" : "",
+        e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : "", e.by_admin ? "áno" : "", gps(e.gps_start), gps(e.gps_end), (e.photos || []).length || ""])]],
+    ["Zálohy", [["Dátum", "Suma €", "Poznámka"], ...ADV.filter(a => a.worker_id === id).map(a => [dFull(a.paid_on), +a.amount, a.note || ""])]],
+    ["Hotovosť", [["Dátum", "Druh", "Na čo", "Dané €", "Minuté €", "Stav", "Poznámka pracovníka", "Poznámka zamestnávateľa", "Bločky (počet)"],
+      ...CASH.filter(c => c.worker_id === id).map(c => [dFull(c.issued_at), c.kind === "own" ? "nákup za vlastné" : "hotovosť na nákup", c.purpose, +c.given, c.spent ?? "", cashStatusTxt(c), c.worker_note || "", c.admin_note || "", (c.photos || []).length || ""])]],
+    ["Neprítomnosť", [["Druh", "Od", "Do", "Poznámka"], ...A.filter(a => a.worker_id === id).map(a => [KIND[a.kind], dFull(a.date_from), dFull(a.date_to), a.note || ""])]]
+  ];
+  const wb = XLSX.utils.book_new();
+  sheets.forEach(([n, d]) => { const ws = XLSX.utils.aoa_to_sheet(d); ws["!cols"] = d[0].map(() => ({wch: 18})); XLSX.utils.book_append_sheet(wb, ws, n); });
+  XLSX.writeFile(wb, `udaje-${w.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-")}.xlsx`);
+  toast("Export hotový. Fotky a bločky pošli pracovníkovi zo záznamov, ak o ne požiada.");
+}
+
 /* =====================================================================
    PRACOVNÍCI
    ===================================================================== */
@@ -891,7 +918,7 @@ RENDER.pracovnici = async main => {
     <td>${w.type === "TPP" ? "TPP" : "živnostník"}</td>
     <td class="r num">${w.hourly_rate != null ? eur(w.hourly_rate) : `<span class="muted">${eur(C.default_rate)}</span>`}</td>
     <td>${w.user_id ? `<span class="tag go">prihlásený</span>` : `<span class="tag warn">čaká na prihlásenie</span>`}</td>
-    <td>${!C.gps_enabled ? `<span class="muted small">vypnutá</span>` : w.gps_consent === true ? `<span class="tag go">súhlasí</span>` : w.gps_consent === false ? `<span class="tag flag">nesúhlasí</span>` : `<span class="muted small">neodpovedal</span>`}</td>
+    <td>${!C.gps_enabled ? `<span class="muted small">vypnutá</span>` : w.gps_consent === true ? `<span class="tag go" title="${w.gps_consent_at ? "od " + dFull(w.gps_consent_at) + " " + hm(w.gps_consent_at) : ""}">súhlasí${w.gps_consent_at ? " od " + dFull(w.gps_consent_at) : ""}</span>` : w.gps_consent === false ? `<span class="tag flag">nesúhlasí${w.gps_consent_at ? " od " + dFull(w.gps_consent_at) : ""}</span>` : `<span class="muted small">neodpovedal</span>`}</td>
     <td>${w.active ? `<button class="btn sm" data-act="invite" data-id="${w.id}">Odkaz do mobilu</button>` : `<button class="btn sm accent" data-act="worker-activate" data-id="${w.id}">Aktivovať</button>`}</td></tr>`).join("")
     : `<tr><td colspan="6" class="empty">Zatiaľ žiadni pracovníci. Pridaj prvého.</td></tr>`}</tbody></table></div>`;
 };
@@ -914,7 +941,12 @@ function openWorker(id) {
       <select id="aKind">${Object.entries(KIND).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select>
       <input type="date" id="aFrom" required aria-label="Od"> – <input type="date" id="aTo" required aria-label="Do">
       <input id="aNote" placeholder="poznámka" style="flex:1;min-width:120px"><button class="btn">Pridať</button></form>
-    ${abs.length ? `<table><tbody>${abs.map(a => `<tr><td>${KIND[a.kind]}</td><td class="num">${dFull(a.date_from)} – ${dFull(a.date_to)}</td><td class="r num">${workdays(a.date_from, a.date_to)} prac. dní</td><td class="muted">${esc(a.note || "")}</td><td class="r"><button class="btn sm danger" data-act="absence-del" data-id="${a.id}" data-w="${id}">Zmazať</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted" style="margin:0">Žiadna zadaná neprítomnosť.</p>`}</div>` : ""}`,
+    ${abs.length ? `<table><tbody>${abs.map(a => `<tr><td>${KIND[a.kind]}</td><td class="num">${dFull(a.date_from)} – ${dFull(a.date_to)}</td><td class="r num">${workdays(a.date_from, a.date_to)} prac. dní</td><td class="muted">${esc(a.note || "")}</td><td class="r"><button class="btn sm danger" data-act="absence-del" data-id="${a.id}" data-w="${id}">Zmazať</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted" style="margin:0">Žiadna zadaná neprítomnosť.</p>`}</div>` : ""}
+  ${id ? `<div class="card" style="padding:12px"><h3>Osobné údaje</h3>
+    <p style="margin:6px 0">Súhlas s polohou: <b>${w.gps_consent === true ? "súhlasí" : w.gps_consent === false ? "nesúhlasí" : "neodpovedal"}</b>${w.gps_consent_at ? ` (${dFull(w.gps_consent_at)} ${hm(w.gps_consent_at)})` : ""}${w.anonymized_at ? ` · anonymizovaný ${dFull(w.anonymized_at)}` : ""}</p>
+    <div class="bar"><button class="btn sm" data-act="worker-export" data-id="${id}">Export údajov pracovníka</button>
+    ${!w.active && !w.anonymized_at && "anonymized_at" in w ? `<button class="btn sm danger" data-act="worker-anon" data-id="${id}">Anonymizovať</button>` : ""}</div>
+    <p class="muted small" style="margin:6px 0 0">${w.active ? "Anonymizovať sa dá bývalý (neaktívny) pracovník: zmaže sa meno, telefón, poznámka a GPS, hodiny a náklady zákaziek ostanú." : "Export = kópia všetkých údajov pre pracovníka (právo na prístup)."}</p></div>` : ""}`,
   `${id ? `<button class="btn danger" data-act="worker-del" data-id="${id}">Zmazať</button><button class="btn" data-act="invite" data-id="${id}">Odkaz do mobilu</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="worker-save">Uložiť</button>`);
 }
 async function saveWorker() {
@@ -1257,7 +1289,7 @@ RENDER.nastavenia = async main => {
   <form class="card form" data-form="settings">
     <div class="field full"><label for="sName">Názov firmy</label><input id="sName" required value="${esc(C.name)}"></div>
     <div class="full">
-      <label class="check"><input type="checkbox" id="sGps" ${C.gps_enabled ? "checked" : ""}><div><b>Zaznamenávať polohu (GPS)</b><span>Poloha sa uloží len pri Príchode a Odchode a appka podľa nej sama vyberie zákazku. Každý pracovník musí v appke súhlasiť; bez súhlasu sa záznamy ukladajú bez polohy.</span></div></label>
+      <label class="check"><input type="checkbox" id="sGps" ${C.gps_enabled ? "checked" : ""}><div><b>Zaznamenávať polohu (GPS)</b><span>Poloha sa uloží len v okamihu Príchodu a appka podľa nej sama vyberie zákazku. Pri Odchode ani počas dňa sa nezisťuje. Každý pracovník musí v appke súhlasiť; bez súhlasu sa záznamy ukladajú bez polohy.</span></div></label>
       <label class="check"><input type="checkbox" id="sBreaks" ${C.breaks_enabled ? "checked" : ""}><div><b>Prestávky / obed</b><span>V appke sa objaví tlačidlo Prestávka. Čas prestávky sa neráta do odpracovaných hodín.</span></div></label>
     </div>
     <div class="field"><label for="sRate">Základná hodinová sadzba €</label><input id="sRate" type="number" min="0" step="0.01" value="${C.default_rate}"></div>
@@ -1267,6 +1299,12 @@ RENDER.nastavenia = async main => {
     <div class="field"><label for="sWarn">Upozornenie na rozpočet pri (%)</label><input id="sWarn" type="number" min="1" max="100" value="${C.budget_warn_pct}"></div>
     <div class="field"><label for="sCashDays">Doklad za hotovosť do (dní)</label><input id="sCashDays" type="number" min="1" max="60" value="${C.cash_overdue_days ?? 3}"><span class="hint">Potom svieti na červeno</span></div>
     <div class="field"><label for="sCashLimit">Drobný zvyšok odpísať do €</label><input id="sCashLimit" type="number" min="0" step="0.5" value="${C.cash_writeoff_limit ?? 2}"><span class="hint">Väčší zvyšok: vrátil / z výplaty / odpísať</span></div>
+    ${"gps_keep_days" in C ? `<div class="full"><h3 style="margin:8px 0 0">Ochrana osobných údajov</h3></div>
+    <div class="field"><label for="sGpsKeep">GPS súradnice mazať po (dňoch)</label><input id="sGpsKeep" type="number" min="7" max="3650" value="${C.gps_keep_days}"><span class="hint">Potom ostane len „na stavbe áno / nie“ a vzdialenosť</span></div>
+    <div class="field"><label for="sPhotoKeep">Fotky k práci mazať po (dňoch)</label><input id="sPhotoKeep" type="number" min="60" max="3650" value="${C.photo_keep_days}"><span class="hint">Bločky z pokladne sa nemažú (účtovné doklady)</span></div>
+    <div class="field full"><label for="sPrivCtrl">Prevádzkovateľ (ukáže sa pracovníkom v appke)</label><input id="sPrivCtrl" value="${esc(C.privacy_controller || "")}" placeholder="Názov firmy, sídlo, IČO, e-mail alebo telefón"></div>
+    <div class="field full"><label for="sPrivUrl">Odkaz na celú informáciu o spracúvaní údajov (nepovinné)</label><input id="sPrivUrl" type="url" value="${esc(C.privacy_url || "")}" placeholder="https://…"></div>`
+    : `<div class="full card flag">Chýbajú nastavenia ochrany údajov – v Supabase treba spustiť SQL súbor 0004_gdpr.sql.</div>`}
     <div class="full"><button class="btn primary">Uložiť nastavenia</button></div>
   </form>
   <div class="card"><h3>Appka pre pracovníkov</h3><p style="margin:6px 0">Adresa: <a href="${WORKER_APP}" target="_blank" rel="noopener">${WORKER_APP}</a>. Každý pracovník dostane vlastný odkaz v časti Pracovníci.</p></div>`;
@@ -1276,6 +1314,8 @@ async function saveSettings() {
   const row = {name: f.sName.value.trim(), gps_enabled: f.sGps.checked, breaks_enabled: f.sBreaks.checked, default_rate: +f.sRate.value || 0,
     default_radius: +f.sRadius.value || 500, forgot_checkout_hour: +f.sHour.value, max_shift_hours: +f.sMax.value, budget_warn_pct: +f.sWarn.value || 80,
     cash_overdue_days: +f.sCashDays.value || 3, cash_writeoff_limit: f.sCashLimit.value === "" ? 2 : +f.sCashLimit.value};
+  if (f.sGpsKeep) Object.assign(row, {gps_keep_days: +f.sGpsKeep.value || 90, photo_keep_days: +f.sPhotoKeep.value || 365,
+    privacy_controller: f.sPrivCtrl.value.trim() || null, privacy_url: f.sPrivUrl.value.trim() || null});
   try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); }
   catch (e) { toast(errMsg(e), true); }
 }
@@ -1313,8 +1353,10 @@ document.addEventListener("click", async ev => {
       case "entry": await openEntry(id); break;
       case "entry-new": if (!W.length) return toast("Najprv pridaj pracovníka", true); await openEntry(null); break;
       case "entry-save": await saveEntry(); break;
-      case "entry-del": if (!confirm("Naozaj zmazať tento záznam?")) return;
-        await q(sb.from("entries").delete().eq("id", id)); cache.range = null; closeModal(); toast("Zmazané"); go(); break;
+      case "entry-del": { if (!confirm("Naozaj zmazať tento záznam? Zmažú sa aj jeho fotky.")) return;
+        const ph = (await q(sb.from("entries").select("photos").eq("id", id)))[0]?.photos || [];
+        if (ph.length) await q(sb.storage.from("fotky").remove(ph));
+        await q(sb.from("entries").delete().eq("id", id)); } cache.range = null; closeModal(); toast("Zmazané"); go(); break;
       case "rep-tab": repTab = el.dataset.t; go(); break;
       case "xlsx": await exportXlsx(); break;
       case "pdf": window.print(); break;
@@ -1322,6 +1364,11 @@ document.addEventListener("click", async ev => {
       case "worker-new": openWorker(null); break;
       case "worker-save": await saveWorker(); break;
       case "worker-del": await deleteWorker(id); break;
+      case "worker-export": await exportWorker(id); break;
+      case "worker-anon": { if (!confirm("Anonymizovať " + wName(id) + "? Meno, telefón, poznámka a GPS súradnice sa natrvalo zmažú. Hodiny a náklady zákaziek ostanú. Nedá sa vrátiť.")) return;
+        await q(sb.rpc("anonymize_worker", {p_worker: id}));
+        const saved = await q(sb.from("workers").select("*").eq("id", id).single()); W = W.map(w => w.id === id ? saved : w);
+        cache.range = null; closeModal(); toast("Anonymizované"); go(); break; }
       case "worker-activate": ev.stopPropagation(); await activateWorker(id); break;
       case "invite": ev.stopPropagation(); openInvite(id); break;
       case "copy": try { await navigator.clipboard.writeText(el.dataset.v); toast("Skopírované – vlož do správy"); } catch (e) { $("#iLink").select(); toast("Skopíruj odkaz ručne", true); } break;
@@ -1426,7 +1473,25 @@ async function start() {
   await loadBase();
   if (!C) { renderAuth(); return; }
   $("#auth").hidden = true; $("#shell").hidden = false;
-  go();
+  go(); retention();
+}
+/* lehoty uchovávania (GDPR): raz denne zmazať staré GPS súradnice a fotky k práci */
+async function retention(force) {
+  if (!C || !("gps_keep_days" in C)) return;
+  const key = "dochadzka.retention." + C.id, today = dateKey(Date.now());
+  try { if (!force && localStorage.getItem(key) === today) return; } catch (e) {}
+  try {
+    await q(sb.rpc("purge_old_gps"));
+    const cut = new Date(Date.now() - C.photo_keep_days * 864e5).toISOString();
+    const old = (await fetchAll(() => sb.from("entries").select("id,photos").eq("company_id", C.id).lt("start_at", cut).neq("photos", "{}")))
+      .filter(e => (e.photos || []).length);
+    for (let i = 0; i < old.length; i += 100) {
+      const part = old.slice(i, i + 100);
+      await q(sb.storage.from("fotky").remove(part.flatMap(e => e.photos)));
+      await q(sb.from("entries").update({photos: []}).in("id", part.map(e => e.id)));
+    }
+    try { localStorage.setItem(key, today); } catch (e) {}
+  } catch (e) { console.warn("retention", e); }
 }
 start().catch(e => { renderAuth({t: errMsg(e), err: true}); });
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});

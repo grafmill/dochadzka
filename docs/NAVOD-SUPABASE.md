@@ -52,6 +52,15 @@ Kto už mal v mobile starú verziu appky, uvidí ukážkové dáta s nápisom �
 Nové zmeny pribudnú ako ďalšie súbory `supabase/migrations/0002_…sql`, `0003_…sql` a spúšťajú sa
 rovnako, v poradí čísel. Každý súbor sa dá spustiť aj opakovane.
 
+## Ochrana údajov (GDPR) v Supabase
+
+- **Región:** v Supabase → Project Settings → General skontroluj, že projekt beží v EÚ (napr. Frankfurt, `eu-central-1`).
+  Ak nie, pri presune k zákazníkovi vytvor projekt v EÚ regióne.
+- **Zmluva o spracúvaní (DPA):** Supabase ju ponúka v nastaveniach organizácie (Legal / DPA). Uzatvára ju prevádzkovateľ
+  (firma, ktorá appku používa), alebo dodávateľ, ak systém spravuje za ňu.
+- **Lehoty mazania** (GPS súradnice, fotky k práci) sa nastavujú v administrácii → Nastavenia → Ochrana osobných údajov.
+  Mazanie prebehne samo raz denne, keď sa správca prihlási do administrácie.
+
 ## Presun k zákazníkovi
 
 - Iný Supabase projekt: kroky 1–3 v novom projekte a v `config.js` zmeniť `supabaseUrl` a `supabaseKey`
