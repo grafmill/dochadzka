@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Návod pre správcu · PROFE Industry</title>
+<link rel="stylesheet" href="../../vendor/fonts/fonts.css">
+<style>
+/* Layout: jeden stĺpec na čítanie v mobile, farby a písmo rovnaké ako v appke Dochádzka */
+:root{
+  --bg:#F2F5FA; --surface:#FBFCFE; --sunk:#EEF2F8; --ink:#00173C; --muted:#4A5A76; --line:#C9D3E3;
+ --accent:#F28C28; --accent-ink:#00173C; --go:#1E7F4F; --stop:#B8322A; --flag:#D12A1F; --info:#1F4E9A;
+ --info-bg:#E3E9F3; --warn-bg:#FDEEDD; --flag-bg:#F8E1DF; --go-bg:#E1F0E7; --navy:#00173C; --navy-2:#0A2A5C;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#000E26; --surface:#06204A; --sunk:#031836; --ink:#EEF2F8; --muted:#9FB0CC; --line:#1B3766;
+ --accent:#F59A3E; --accent-ink:#00173C; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --info:#8DB4EE;
+ --info-bg:#0B2A57; --warn-bg:#2E1F0E; --flag-bg:#33191A; --go-bg:#16291F; --navy:#000A1C; --navy-2:#06204A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000E26; --surface:#06204A; --sunk:#031836; --ink:#EEF2F8; --muted:#9FB0CC; --line:#1B3766;
+ --accent:#F59A3E; --accent-ink:#00173C; --go:#2C9A63; --stop:#D4483A; --flag:#FF5A4E; --info:#8DB4EE;
+ --info-bg:#0B2A57; --warn-bg:#2E1F0E; --flag-bg:#33191A; --go-bg:#16291F; --navy:#000A1C; --navy-2:#06204A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-direction:column;gap:4px;border-bottom:4px solid var(--accent);padding-bottom:14px}
+.eyebrow{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:14px;color:var(--muted)}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:40px}
+h2{font-size:28px;margin-top:10px;display:flex;gap:10px;align-items:baseline}
+h2 .n{font-size:18px;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:0 8px;min-width:32px;text-align:center}
+h3{font-size:21px}
+p{margin:0}
+.lead{font-size:19px;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:10px;min-width:0}
+ol,ul{margin:0;padding-left:24px;display:flex;flex-direction:column;gap:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.privacy{background:var(--info-bg);border:2px solid var(--info);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.privacy h2{margin-top:0;color:var(--info)}
+.privacy ul{gap:8px}
+.note{background:var(--warn-bg);border-left:5px solid var(--accent);border-radius:8px;padding:12px 14px}
+.danger{background:var(--flag-bg);border-left:5px solid var(--flag);border-radius:8px;padding:12px 14px}
+.ok{background:var(--go-bg);border-left:5px solid var(--go);border-radius:8px;padding:12px 14px}
+.btn{display:inline-block;font-family:var(--display);font-weight:700;font-size:.95em;padding:0 8px;border-radius:6px;border:1px solid var(--line);background:var(--sunk);white-space:nowrap}
+.btn.go{background:var(--go);color:#fff;border-color:var(--go)}
+.btn.stop{background:var(--stop);color:#fff;border-color:var(--stop)}
+.flag{color:var(--flag);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:15px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:10px}
+.steps>li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}
+.steps>li::before{content:counter(s);font-family:var(--display);font-weight:700;font-size:20px;background:var(--ink);color:var(--bg);border-radius:50%;width:32px;height:32px;display:grid;place-items:center}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--display);font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:15px}
+a{color:var(--info)}
+.fill{background:var(--warn-bg);border-bottom:2px dotted var(--accent);padding:0 3px}
+.tag{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;border-radius:5px;padding:1px 7px;white-space:nowrap}
+.tag.p1{background:var(--flag);color:#fff}.tag.p2{background:var(--accent);color:var(--accent-ink)}.tag.p3{background:var(--line);color:var(--ink)}
+footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:14px}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+@media print{body{background:#fff;color:#000}.privacy,.card,.tablewrap{break-inside:avoid}}
+
+.brandbar{background:linear-gradient(115deg,var(--navy) 0 62%,var(--navy-2) 62% 100%);color:#F2F5FA;border-radius:14px;padding:22px 22px 20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;position:relative;overflow:hidden}
+.brandbar::after{content:"";position:absolute;top:0;bottom:0;left:60%;width:10px;background:#F28C28;transform:skewX(-25deg)}
+.logo{display:flex;align-items:baseline;gap:10px;font-family:var(--display);line-height:1;position:relative;z-index:1}
+.logo img{height:44px;width:auto;display:block}
+.logo .l1{font-weight:700;font-size:40px;letter-spacing:.06em}
+.logo .l2{font-weight:600;font-size:20px;letter-spacing:.32em;color:#F28C28}
+.brandbar .bb-r{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:15px;color:#BFCBE0;position:relative;z-index:1}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.linkcard{background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--navy);border-radius:12px;padding:14px 16px;display:flex;gap:14px;align-items:center;min-width:0}
+.linkcard svg{flex:none;width:112px;height:112px;border-radius:6px;border:1px solid var(--line)}
+.linkcard .t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.linkcard a{font-weight:700;word-break:break-all}
+.profe{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.profe h2{margin-top:0}
+.kv{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:6px 14px}
+.kv dt{color:var(--muted);font-size:15px}.kv dd{margin:0;font-weight:600;min-width:0;overflow-wrap:anywhere}
+@media (max-width:640px){.brandbar{background:var(--navy)}.brandbar::after{left:auto;right:-6px;width:28px}}
+@media print{.brandbar{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="wrap">
+<div class="brandbar"><div class="logo" aria-label="PROFE Industry"><span class="l1">PROFE</span><span class="l2">INDUSTRY</span></div><span class="bb-r">Administrácia dochádzky</span></div>
+<header class="top">
+  <span class="eyebrow">PROFE Industry · návod pre správcu</span>
+  <h1>Administrácia dochádzky</h1>
+  <p class="lead">Kto je kde, ako je na tom zákazka, koľko komu doplatiť. Kompletný návod a súpis všetkých funkcií.</p>
+</header>
+
+<div class="links">
+  <div class="linkcard"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" width="132" height="132" role="img" aria-label="QR kód https://grafmill.github.io/dochadzka/admin/"><rect width="100%" height="100%" fill="#fff"/><path d="M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM10 2h1v1h-1zM11 2h1v1h-1zM14 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM17 2h1v1h-1zM18 2h1v1h-1zM25 2h1v1h-1zM28 2h1v1h-1zM29 2h1v1h-1zM30 2h1v1h-1zM31 2h1v1h-1zM32 2h1v1h-1zM33 2h1v1h-1zM34 2h1v1h-1zM2 3h1v1h-1zM8 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM28 3h1v1h-1zM34 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM14 4h1v1h-1zM16 4h1v1h-1zM19 4h1v1h-1zM20 4h1v1h-1zM23 4h1v1h-1zM25 4h1v1h-1zM26 4h1v1h-1zM28 4h1v1h-1zM30 4h1v1h-1zM31 4h1v1h-1zM32 4h1v1h-1zM34 4h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM13 5h1v1h-1zM14 5h1v1h-1zM18 5h1v1h-1zM19 5h1v1h-1zM21 5h1v1h-1zM23 5h1v1h-1zM24 5h1v1h-1zM28 5h1v1h-1zM30 5h1v1h-1zM31 5h1v1h-1zM32 5h1v1h-1zM34 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM15 6h1v1h-1zM18 6h1v1h-1zM21 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM28 6h1v1h-1zM30 6h1v1h-1zM31 6h1v1h-1zM32 6h1v1h-1zM34 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM16 7h1v1h-1zM17 7h1v1h-1zM22 7h1v1h-1zM25 7h1v1h-1zM26 7h1v1h-1zM28 7h1v1h-1zM34 7h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h1v1h-1zM29 8h1v1h-1zM30 8h1v1h-1zM31 8h1v1h-1zM32 8h1v1h-1zM33 8h1v1h-1zM34 8h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM16 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM26 9h1v1h-1zM2 10h1v1h-1zM6 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM11 10h1v1h-1zM13 10h1v1h-1zM17 10h1v1h-1zM19 10h1v1h-1zM22 10h1v1h-1zM23 10h1v1h-1zM24 10h1v1h-1zM25 10h1v1h-1zM26 10h1v1h-1zM27 10h1v1h-1zM28 10h1v1h-1zM29 10h1v1h-1zM30 10h1v1h-1zM31 10h1v1h-1zM34 10h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM16 11h1v1h-1zM17 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM20 11h1v1h-1zM23 11h1v1h-1zM25 11h1v1h-1zM27 11h1v1h-1zM31 11h1v1h-1zM32 11h1v1h-1zM2 12h1v1h-1zM3 12h1v1h-1zM4 12h1v1h-1zM5 12h1v1h-1zM8 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM12 12h1v1h-1zM14 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM17 12h1v1h-1zM18 12h1v1h-1zM20 12h1v1h-1zM25 12h1v1h-1zM27 12h1v1h-1zM31 12h1v1h-1zM33 12h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM5 13h1v1h-1zM6 13h1v1h-1zM9 13h1v1h-1zM10 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM17 13h1v1h-1zM22 13h1v1h-1zM24 13h1v1h-1zM26 13h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM15 14h1v1h-1zM18 14h1v1h-1zM21 14h1v1h-1zM24 14h1v1h-1zM26 14h1v1h-1zM28 14h1v1h-1zM30 14h1v1h-1zM31 14h1v1h-1zM34 14h1v1h-1zM4 15h1v1h-1zM6 15h1v1h-1zM9 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM20 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM23 15h1v1h-1zM26 15h1v1h-1zM27 15h1v1h-1zM29 15h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM8 16h1v1h-1zM9 16h1v1h-1zM13 16h1v1h-1zM14 16h1v1h-1zM15 16h1v1h-1zM17 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM25 16h1v1h-1zM26 16h1v1h-1zM27 16h1v1h-1zM28 16h1v1h-1zM30 16h1v1h-1zM31 16h1v1h-1zM32 16h1v1h-1zM33 16h1v1h-1zM5 17h1v1h-1zM9 17h1v1h-1zM11 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM17 17h1v1h-1zM18 17h1v1h-1zM19 17h1v1h-1zM23 17h1v1h-1zM24 17h1v1h-1zM26 17h1v1h-1zM27 17h1v1h-1zM28 17h1v1h-1zM29 17h1v1h-1zM30 17h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM8 18h1v1h-1zM9 18h1v1h-1zM13 18h1v1h-1zM14 18h1v1h-1zM19 18h1v1h-1zM20 18h1v1h-1zM21 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM25 18h1v1h-1zM26 18h1v1h-1zM28 18h1v1h-1zM30 18h1v1h-1zM33 18h1v1h-1zM2 19h1v1h-1zM3 19h1v1h-1zM4 19h1v1h-1zM9 19h1v1h-1zM10 19h1v1h-1zM14 19h1v1h-1zM15 19h1v1h-1zM17 19h1v1h-1zM18 19h1v1h-1zM20 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM31 19h1v1h-1zM32 19h1v1h-1zM33 19h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM11 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM17 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM25 20h1v1h-1zM26 20h1v1h-1zM27 20h1v1h-1zM28 20h1v1h-1zM29 20h1v1h-1zM31 20h1v1h-1zM33 20h1v1h-1zM5 21h1v1h-1zM6 21h1v1h-1zM7 21h1v1h-1zM9 21h1v1h-1zM13 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM29 21h1v1h-1zM33 21h1v1h-1zM2 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM11 22h1v1h-1zM12 22h1v1h-1zM16 22h1v1h-1zM17 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM26 22h1v1h-1zM28 22h1v1h-1zM30 22h1v1h-1zM31 22h1v1h-1zM33 22h1v1h-1zM34 22h1v1h-1zM2 23h1v1h-1zM4 23h1v1h-1zM7 23h1v1h-1zM10 23h1v1h-1zM11 23h1v1h-1zM13 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM21 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM25 23h1v1h-1zM26 23h1v1h-1zM27 23h1v1h-1zM29 23h1v1h-1zM33 23h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM18 24h1v1h-1zM20 24h1v1h-1zM21 24h1v1h-1zM23 24h1v1h-1zM25 24h1v1h-1zM27 24h1v1h-1zM32 24h1v1h-1zM33 24h1v1h-1zM4 25h1v1h-1zM5 25h1v1h-1zM7 25h1v1h-1zM12 25h1v1h-1zM13 25h1v1h-1zM14 25h1v1h-1zM15 25h1v1h-1zM19 25h1v1h-1zM21 25h1v1h-1zM22 25h1v1h-1zM23 25h1v1h-1zM24 25h1v1h-1zM26 25h1v1h-1zM27 25h1v1h-1zM28 25h1v1h-1zM33 25h1v1h-1zM34 25h1v1h-1zM2 26h1v1h-1zM3 26h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM7 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM15 26h1v1h-1zM17 26h1v1h-1zM19 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM25 26h1v1h-1zM26 26h1v1h-1zM27 26h1v1h-1zM28 26h1v1h-1zM29 26h1v1h-1zM30 26h1v1h-1zM33 26h1v1h-1zM10 27h1v1h-1zM12 27h1v1h-1zM13 27h1v1h-1zM16 27h1v1h-1zM17 27h1v1h-1zM19 27h1v1h-1zM20 27h1v1h-1zM23 27h1v1h-1zM26 27h1v1h-1zM30 27h1v1h-1zM32 27h1v1h-1zM33 27h1v1h-1zM2 28h1v1h-1zM3 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM7 28h1v1h-1zM8 28h1v1h-1zM10 28h1v1h-1zM15 28h1v1h-1zM16 28h1v1h-1zM17 28h1v1h-1zM20 28h1v1h-1zM22 28h1v1h-1zM26 28h1v1h-1zM28 28h1v1h-1zM30 28h1v1h-1zM31 28h1v1h-1zM33 28h1v1h-1zM2 29h1v1h-1zM8 29h1v1h-1zM12 29h1v1h-1zM14 29h1v1h-1zM15 29h1v1h-1zM21 29h1v1h-1zM22 29h1v1h-1zM24 29h1v1h-1zM26 29h1v1h-1zM30 29h1v1h-1zM2 30h1v1h-1zM4 30h1v1h-1zM5 30h1v1h-1zM6 30h1v1h-1zM8 30h1v1h-1zM10 30h1v1h-1zM11 30h1v1h-1zM12 30h1v1h-1zM15 30h1v1h-1zM17 30h1v1h-1zM18 30h1v1h-1zM21 30h1v1h-1zM24 30h1v1h-1zM26 30h1v1h-1zM27 30h1v1h-1zM28 30h1v1h-1zM29 30h1v1h-1zM30 30h1v1h-1zM31 30h1v1h-1zM33 30h1v1h-1zM2 31h1v1h-1zM4 31h1v1h-1zM5 31h1v1h-1zM6 31h1v1h-1zM8 31h1v1h-1zM11 31h1v1h-1zM15 31h1v1h-1zM16 31h1v1h-1zM19 31h1v1h-1zM20 31h1v1h-1zM21 31h1v1h-1zM22 31h1v1h-1zM23 31h1v1h-1zM28 31h1v1h-1zM29 31h1v1h-1zM30 31h1v1h-1zM32 31h1v1h-1zM33 31h1v1h-1zM2 32h1v1h-1zM4 32h1v1h-1zM5 32h1v1h-1zM6 32h1v1h-1zM8 32h1v1h-1zM11 32h1v1h-1zM12 32h1v1h-1zM13 32h1v1h-1zM16 32h1v1h-1zM17 32h1v1h-1zM19 32h1v1h-1zM22 32h1v1h-1zM25 32h1v1h-1zM27 32h1v1h-1zM28 32h1v1h-1zM29 32h1v1h-1zM30 32h1v1h-1zM2 33h1v1h-1zM8 33h1v1h-1zM11 33h1v1h-1zM12 33h1v1h-1zM15 33h1v1h-1zM16 33h1v1h-1zM17 33h1v1h-1zM18 33h1v1h-1zM19 33h1v1h-1zM20 33h1v1h-1zM23 33h1v1h-1zM24 33h1v1h-1zM25 33h1v1h-1zM26 33h1v1h-1zM28 33h1v1h-1zM31 33h1v1h-1zM2 34h1v1h-1zM3 34h1v1h-1zM4 34h1v1h-1zM5 34h1v1h-1zM6 34h1v1h-1zM7 34h1v1h-1zM8 34h1v1h-1zM10 34h1v1h-1zM11 34h1v1h-1zM13 34h1v1h-1zM15 34h1v1h-1zM19 34h1v1h-1zM21 34h1v1h-1zM22 34h1v1h-1zM23 34h1v1h-1zM24 34h1v1h-1zM25 34h1v1h-1zM26 34h1v1h-1zM28 34h1v1h-1zM34 34h1v1h-1z" fill="#00173c"/></svg><div class="t"><span class="eyebrow">Administrácia (správca)</span><a href="https://grafmill.github.io/dochadzka/admin/">grafmill.github.io/dochadzka/admin</a><span class="small muted">Počítač aj mobil. V mobile si ju pridaj na plochu rovnako ako appku.</span></div></div>
+  <div class="linkcard"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" width="132" height="132" role="img" aria-label="QR kód https://grafmill.github.io/dochadzka/"><rect width="100%" height="100%" fill="#fff"/><path d="M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM11 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM17 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM27 2h1v1h-1zM28 2h1v1h-1zM29 2h1v1h-1zM30 2h1v1h-1zM2 3h1v1h-1zM8 3h1v1h-1zM12 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM16 3h1v1h-1zM17 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM30 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM13 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM19 4h1v1h-1zM20 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM26 4h1v1h-1zM27 4h1v1h-1zM28 4h1v1h-1zM30 4h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM11 5h1v1h-1zM12 5h1v1h-1zM13 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM17 5h1v1h-1zM21 5h1v1h-1zM22 5h1v1h-1zM24 5h1v1h-1zM26 5h1v1h-1zM27 5h1v1h-1zM28 5h1v1h-1zM30 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM13 6h1v1h-1zM16 6h1v1h-1zM17 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM24 6h1v1h-1zM26 6h1v1h-1zM27 6h1v1h-1zM28 6h1v1h-1zM30 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM11 7h1v1h-1zM14 7h1v1h-1zM17 7h1v1h-1zM18 7h1v1h-1zM19 7h1v1h-1zM20 7h1v1h-1zM21 7h1v1h-1zM22 7h1v1h-1zM24 7h1v1h-1zM30 7h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM25 8h1v1h-1zM26 8h1v1h-1zM27 8h1v1h-1zM28 8h1v1h-1zM29 8h1v1h-1zM30 8h1v1h-1zM11 9h1v1h-1zM12 9h1v1h-1zM13 9h1v1h-1zM15 9h1v1h-1zM18 9h1v1h-1zM19 9h1v1h-1zM2 10h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM10 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM21 10h1v1h-1zM23 10h1v1h-1zM25 10h1v1h-1zM2 11h1v1h-1zM5 11h1v1h-1zM7 11h1v1h-1zM12 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM18 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM27 11h1v1h-1zM30 11h1v1h-1zM3 12h1v1h-1zM6 12h1v1h-1zM8 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM13 12h1v1h-1zM15 12h1v1h-1zM16 12h1v1h-1zM20 12h1v1h-1zM21 12h1v1h-1zM22 12h1v1h-1zM23 12h1v1h-1zM24 12h1v1h-1zM27 12h1v1h-1zM28 12h1v1h-1zM29 12h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM6 13h1v1h-1zM7 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM20 13h1v1h-1zM21 13h1v1h-1zM25 13h1v1h-1zM28 13h1v1h-1zM29 13h1v1h-1zM4 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM9 14h1v1h-1zM10 14h1v1h-1zM16 14h1v1h-1zM17 14h1v1h-1zM19 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM27 14h1v1h-1zM29 14h1v1h-1zM30 14h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM13 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM23 15h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM5 16h1v1h-1zM7 16h1v1h-1zM8 16h1v1h-1zM9 16h1v1h-1zM10 16h1v1h-1zM11 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM18 16h1v1h-1zM22 16h1v1h-1zM26 16h1v1h-1zM27 16h1v1h-1zM28 16h1v1h-1zM29 16h1v1h-1zM30 16h1v1h-1zM2 17h1v1h-1zM5 17h1v1h-1zM6 17h1v1h-1zM9 17h1v1h-1zM13 17h1v1h-1zM14 17h1v1h-1zM17 17h1v1h-1zM18 17h1v1h-1zM19 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM25 17h1v1h-1zM27 17h1v1h-1zM29 17h1v1h-1zM3 18h1v1h-1zM8 18h1v1h-1zM10 18h1v1h-1zM11 18h1v1h-1zM13 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM19 18h1v1h-1zM20 18h1v1h-1zM22 18h1v1h-1zM23 18h1v1h-1zM29 18h1v1h-1zM9 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM14 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM18 19h1v1h-1zM19 19h1v1h-1zM23 19h1v1h-1zM24 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM30 19h1v1h-1zM2 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM7 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM11 20h1v1h-1zM13 20h1v1h-1zM14 20h1v1h-1zM16 20h1v1h-1zM19 20h1v1h-1zM23 20h1v1h-1zM29 20h1v1h-1zM30 20h1v1h-1zM7 21h1v1h-1zM9 21h1v1h-1zM10 21h1v1h-1zM12 21h1v1h-1zM14 21h1v1h-1zM16 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM21 21h1v1h-1zM22 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM25 21h1v1h-1zM29 21h1v1h-1zM30 21h1v1h-1zM2 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM13 22h1v1h-1zM18 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM25 22h1v1h-1zM26 22h1v1h-1zM28 22h1v1h-1zM10 23h1v1h-1zM11 23h1v1h-1zM12 23h1v1h-1zM14 23h1v1h-1zM16 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM21 23h1v1h-1zM22 23h1v1h-1zM26 23h1v1h-1zM28 23h1v1h-1zM29 23h1v1h-1zM30 23h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM7 24h1v1h-1zM8 24h1v1h-1zM22 24h1v1h-1zM24 24h1v1h-1zM26 24h1v1h-1zM29 24h1v1h-1zM2 25h1v1h-1zM8 25h1v1h-1zM10 25h1v1h-1zM12 25h1v1h-1zM14 25h1v1h-1zM16 25h1v1h-1zM17 25h1v1h-1zM22 25h1v1h-1zM26 25h1v1h-1zM27 25h1v1h-1zM28 25h1v1h-1zM2 26h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM6 26h1v1h-1zM8 26h1v1h-1zM11 26h1v1h-1zM13 26h1v1h-1zM14 26h1v1h-1zM17 26h1v1h-1zM18 26h1v1h-1zM19 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM26 26h1v1h-1zM29 26h1v1h-1zM30 26h1v1h-1zM2 27h1v1h-1zM4 27h1v1h-1zM5 27h1v1h-1zM6 27h1v1h-1zM8 27h1v1h-1zM10 27h1v1h-1zM15 27h1v1h-1zM22 27h1v1h-1zM24 27h1v1h-1zM26 27h1v1h-1zM27 27h1v1h-1zM28 27h1v1h-1zM29 27h1v1h-1zM2 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM8 28h1v1h-1zM11 28h1v1h-1zM12 28h1v1h-1zM13 28h1v1h-1zM14 28h1v1h-1zM21 28h1v1h-1zM22 28h1v1h-1zM26 28h1v1h-1zM27 28h1v1h-1zM28 28h1v1h-1zM30 28h1v1h-1zM2 29h1v1h-1zM8 29h1v1h-1zM12 29h1v1h-1zM15 29h1v1h-1zM19 29h1v1h-1zM20 29h1v1h-1zM21 29h1v1h-1zM22 29h1v1h-1zM24 29h1v1h-1zM26 29h1v1h-1zM29 29h1v1h-1zM2 30h1v1h-1zM3 30h1v1h-1zM4 30h1v1h-1zM5 30h1v1h-1zM6 30h1v1h-1zM7 30h1v1h-1zM8 30h1v1h-1zM10 30h1v1h-1zM11 30h1v1h-1zM12 30h1v1h-1zM16 30h1v1h-1zM19 30h1v1h-1zM21 30h1v1h-1zM22 30h1v1h-1zM25 30h1v1h-1zM26 30h1v1h-1zM27 30h1v1h-1zM29 30h1v1h-1z" fill="#00173c"/></svg><div class="t"><span class="eyebrow">Appka pre zamestnancov</span><a href="https://grafmill.github.io/dochadzka/">grafmill.github.io/dochadzka</a><span class="small muted">Každý zamestnanec dostane vlastný odkaz s kódom z karty pracovníka.</span></div></div>
+</div>
+
+<section class="profe" id="profe" aria-labelledby="h-profe">
+  <h2 id="h-profe"><span class="n">0</span>Prihlásenie a nastavenie pre PROFE Industry</h2>
+  <dl class="kv">
+    <dt>Adresa</dt><dd><a href="https://grafmill.github.io/dochadzka/admin/">https://grafmill.github.io/dochadzka/admin/</a> → záložka <b>Prihlásiť</b></dd>
+    <dt>E-mail správcu</dt><dd><span class="fill">______________________________</span></dd>
+    <dt>Heslo</dt><dd>odovzdané osobne (z bezpečnosti nie je v návode)</dd>
+    <dt>Zabudnuté heslo</dt><dd>tlačidlo <b>Zabudnuté heslo</b> na prihlásení, príde odkaz na e-mail</dd>
+  </dl>
+  <h3>Odporúčané nastavenie (Menu → Nastavenia)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Nastavenie</th><th>Pre PROFE Industry</th></tr>
+    <tr><td>Zameranie firmy</td><td><b>Kovovýroba / zámočnícka dielňa</b> (úlohy 1 Dielňa – výroba, 2 Montáž u zákazníka, 3 Nákup, 4 Zásobovanie / doprava, 5 Údržba strojov, 6 Upratovanie, 9 Reklamácia)</td></tr>
+    <tr><td>Typ práce</td><td><b>Práca v teréne</b>, lebo časť ľudí je na montážach. Dielňu založte ako zákazku „Dielňa Štrková“ s polohou Štrková 95/21, Žilina.</td></tr>
+    <tr><td>Poloha (GPS)</td><td>Odporúčame zapnúť: na montáži appka vyberie zákazku sama. Každý zamestnanec musí súhlasiť, bez súhlasu funguje bez polohy.</td></tr>
+    <tr><td>Zaradenie pracovníkov</td><td>Zvárač → 1, Zámočník → 1, Montážnik → 2, Zásobovač / vodič → 4</td></tr>
+    <tr><td>Prevádzkovateľ</td><td>PROFE Industry, s. r. o., Štrková 95/21, 010 09 Žilina, IČO <span class="fill">________</span>, info@profe-industry.sk, +421 949 133 323</td></tr>
+    <tr><td>Náklady a zisk zákaziek</td><td>Zapnúť, ak chcete vidieť zisk zákaziek. Potom si zapnite dvojstupňové overenie.</td></tr>
+    <tr><td>QR štítky</td><td>Zákazkám dajte kód (napr. číslo objednávky) a vytlačte štítky na zákazkové listy v dielni.</td></tr>
+  </table></div>
+</section>
+
+<nav class="toc" aria-label="Obsah">
+  <a href="#profe">Nastavenie PROFE</a><a href="#start">Prvé kroky</a><a href="#prehlad">Kto je kde</a><a href="#zakazky">Zákazky</a><a href="#pracovnici">Pracovníci</a><a href="#dochadzka">Dochádzka</a><a href="#vykazy">Výkazy a export</a><a href="#pokladna">Pokladňa</a><a href="#naklady">Náklady a zisk zákaziek</a><a href="#ulohy">Úlohy</a><a href="#sadzby">Sadzby</a><a href="#nastavenia">Nastavenia</a><a href="#gps">Poloha a súkromie</a><a href="#supis">Súpis funkcií</a>
+</nav>
+
+<section id="start">
+  <h2><span class="n">1</span>Prvé kroky</h2>
+  <ol class="steps">
+    <li><span><b>Prihlásenie.</b> Firma PROFE Industry je už založená. Otvor administráciu, záložka <b>Prihlásiť</b>, a zadaj e-mail a heslo správcu. Zabudnuté heslo sa obnoví odkazom na e-mail.</span></li>
+    <li><span><b>Nastavenia.</b> V Menu → Nastavenia vyber <b>Typ práce</b> (v teréne alebo v sídle firmy), zadaj základnú hodinovú sadzbu, rozhodni, či chceš zaznamenávať polohu (GPS) a prestávky, a vyplň údaje <b>Prevádzkovateľa</b> pre časť Ochrana údajov (názov, sídlo, IČO a kontakt sú povinné). Kým nie sú vyplnené, svieti výstraha na obrazovke Kto je kde.</span></li>
+    <li><span><b>Úlohy.</b> Menu → Úlohy: skontroluj zoznam prác s číslami 0–99 (pre PROFE: 1 = Dielňa – výroba, 2 = Montáž u zákazníka, 3 = Nákup…). Pracovník ich v appke vyberá číslom.</span></li>
+    <li><span><b>Zákazky.</b> Pridaj zákazky, ideálne s bodom na mape a rozpočtom na prácu.</span></li>
+    <li><span><b>Pracovníci.</b> Pridaj ľudí a každému pošli <b>Odkaz do mobilu</b> cez SMS alebo WhatsApp. Spolu s odkazom mu pošli aj <a href="navod-zamestnanec.html">návod pre zamestnanca</a> (PDF alebo tento súbor).</span></li>
+  </ol>
+  <p class="small muted">V mobile má administrácia dole lištu: <b>Kto je kde</b>, <b>Zákazky</b>, <b>Pokladňa</b> a <b>Menu</b> (všetko ostatné). Na počítači je menu vľavo.</p>
+</section>
+
+<section id="prehlad">
+  <h2><span class="n">2</span>Kto je kde</h2>
+  <p>Hlavná obrazovka. Obnovuje sa sama každých 30 sekúnd.</p>
+  <ul>
+    <li><b>Počítadlá hore:</b> koľko ľudí je v práci, koľkí neprišli, počet výstrah a koľko hotovosti je u ľudí bez dokladu.</li>
+    <li><b>Výstrahy:</b> zabudnutý odchod (niekto je v práci dlhšie, ako je limit), príchod mimo okruhu zákazky, rozpočet zákazky blízko alebo nad limitom, dnešné opravy času v mobile, chýbajúci doklad po lehote a doklady čakajúce na kontrolu. Pri zabudnutom odchode je hneď tlačidlo <b>Opraviť</b>.</li>
+    <li><b>Karty zákaziek:</b> pri každej zákazke vidíš, kto tam práve je, akú úlohu robí, od kedy, koľko hodín a či je na mieste podľa GPS. Pod tým, kto tam bol dnes a už odišiel, a čerpanie rozpočtu.</li>
+    <li><b>Dnes nie sú v práci:</b> kto ešte neprišiel, kto má dovolenku alebo PN a kto už odišiel (s časom a hodinami).</li>
+    <li><b>Mapa:</b> zákazky s okruhom a body, kde sa pracovníci prihlásili pri Príchode. Nie je to živé sledovanie, je to miesto z okamihu Príchodu.</li>
+  </ul>
+  <div class="card">
+    <h3>Ťuk na meno pracovníka</h3>
+    <p>Otvorí rýchly prehľad: kde je teraz, koľko zarobil tento mesiac, zálohy, hotovosť a koľko mu doplatiť. Odtiaľ sa dá hneď <b>Dať hotovosť</b>, pridať <b>Zálohu</b>, poslať <b>Odkaz do mobilu</b>, zavolať, otvoriť <b>Kartu pracovníka</b> alebo jeho <b>Záznamy</b>.</p>
+  </div>
+</section>
+
+<section id="zakazky">
+  <h2><span class="n">3</span>Zákazky</h2>
+  <ol class="steps">
+    <li><span><b>+ Nová zákazka:</b> názov a adresa. Tlačidlo <b>Nájsť na mape</b> nájde adresu, bod sa dá posunúť ťuknutím do mapy.</span></li>
+    <li><span><b>Kód:</b> krátke označenie zákazky, napríklad Z-105 alebo číslo objednávky. Slúži na QR alebo čiarový kód, ktorý pracovník naskenuje a appka zákazku prepne sama. Kód musí byť v rámci firmy jedinečný.</span></li>
+    <li><span><b>Okruh (m):</b> v akej vzdialenosti od bodu sa príchod počíta ako „na mieste“. Prázdne = podľa Nastavení (predvolene 500 m).</span></li>
+    <li><span><b>Rozpočet na prácu €:</b> po zadaní sa sleduje čerpanie a pri prekročení limitu (predvolene 80 %) príde výstraha.</span></li>
+    <li><span><b>Ukončená zákazka</b> sa pracovníkom v appke už neponúka, jej záznamy ostávajú.</span></li>
+  </ol>
+  <div class="card">
+    <h3>Tlačiť QR kódy</h3>
+    <p>Tlačidlo <b>Tlačiť QR kódy</b> v zozname zákaziek vytlačí štítky pre všetky aktívne zákazky (názov, kód a QR). Jednu zákazku vytlačíš tlačidlom <b>Tlačiť QR</b> v jej úprave. Štítok nalep na výrobok, stroj, zákazkový list alebo k vchodu. Zákazka bez kódu dostane QR s vlastným interným označením, funguje tiež. Ak máte vlastné čiarové kódy (napr. číslo objednávky), stačí ho zadať ako Kód zákazky.</p>
+  </div>
+  <p>Pri type práce <b>v sídle firmy</b> sa pri zákazke nezadáva mapa ani okruh, v zozname vidíš namiesto polohy kód.</p>
+  <p><b>Detail zákazky</b> (ťuk na zákazku): rozpočet v %, odhad, o koľko pracovných dní sa pri terajšom tempe minie, hodiny dnes / tento mesiac / celkom, kto tu teraz pracuje, čo sa tu robilo podľa úloh (hodiny a cena) a dnešné fotky a poznámky.</p>
+</section>
+
+<section id="pracovnici">
+  <h2><span class="n">4</span>Pracovníci</h2>
+  <ul>
+    <li><b>+ Pridať pracovníka:</b> meno a priezvisko, telefón, typ <b>TPP</b> alebo <b>živnostník</b>, vlastná hodinová sadzba (prázdne = základná sadzba firmy) a poznámka.</li>
+    <li><b>Zaradenie a predvolená úloha:</b> napr. Zvárač → 1 Dielňa – výroba. Pri prvom Príchode dňa sa pracovníkovi táto úloha nastaví sama (inak appka ponúkne naposledy použitú). Keď ide na nákup alebo na montáž, prepne si úlohu jedným ťuknutím. Pri výbere zaradenia zo zoznamu sa predvolená úloha navrhne sama.</li>
+    <li><b>Odkaz do mobilu:</b> 8-znakový kód a odkaz. Tlačidlá <b>Kopírovať správu</b>, <b>Poslať SMS</b>, <b>WhatsApp</b>. V zozname vidíš, či je pracovník už prihlásený.</li>
+    <li><b>Nový kód:</b> keď pracovník stratí alebo vymení mobil. Starý mobil sa tým odhlási.</li>
+    <li><b>Poloha:</b> v zozname vidíš, či pracovník súhlasí s GPS, nesúhlasí alebo ešte neodpovedal, a od kedy (dátum a čas súhlasu alebo odvolania).</li>
+    <li><b>Zálohy:</b> v karte pracovníka <b>+ Záloha</b> (suma, dátum, poznámka). Ak záloha prevýši, čo zatiaľ zarobil, svieti na červeno, ale uložiť sa dá.</li>
+    <li><b>Neprítomnosť (len TPP):</b> dovolenka, PN alebo voľno od–do. Ukazuje sa v prehľade a vo výkaze.</li>
+    <li><b>Zmazať:</b> pracovníka bez záznamov zmažeš. Pracovník so záznamami sa len označí ako <b>neaktívny</b>: nevie sa prihlásiť, zo zoznamu sa schová, jeho záznamy vo výkazoch ostanú. Tlačidlom <b>Aktivovať</b> sa vráti a jeho kód platí ďalej.</li>
+    <li><b>Osobné údaje</b> (v karte pracovníka): <b>Export údajov pracovníka</b> stiahne Excel so všetkým, čo o ňom systém vedie (údaje, záznamy s GPS, zálohy, hotovosť, neprítomnosť). Použi ho, keď pracovník požiada o kópiu svojich údajov.</li>
+    <li><b>Anonymizovať</b> (len neaktívny pracovník, po uplynutí lehoty uchovávania): natrvalo zmaže meno, telefón, poznámku a GPS súradnice. Hodiny a náklady zákaziek ostanú pod menom „Bývalý pracovník XXXX“. Nedá sa vrátiť.</li>
+  </ul>
+</section>
+
+<section id="dochadzka">
+  <h2><span class="n">5</span>Dochádzka (všetky záznamy)</h2>
+  <ul>
+    <li>Filtre: mesiac, pracovník, zákazka (aj „Iné“) a <b>len upravené</b>.</li>
+    <li>Ak je zapnuté zaokrúhľovanie, pod časom je sivo <b>započítané 8:00–16:30</b>. Hore je skutočný čas z mobilu, hodiny a cena sa rátajú zo započítaného.</li>
+    <li>Riadok so <span class="flag">!</span> znamená, že si pracovník v mobile zmenil čas. Pod ním je pôvodný čas.</li>
+    <li>Ťuk na záznam: zmena pracovníka, dňa, príchodu, odchodu, zákazky, úlohy a poznámky. Vidíš sadzbu, cenu, polohu pri príchode (GPS ✓, alebo vzdialenosť od miesta zákazky, s odkazom na mapu) a fotky.</li>
+    <li><b>+ Pridať záznam</b> ručne, napr. keď pracovník nemal mobil. <b>Zmazať</b> záznam úplne, aj s jeho fotkami.</li>
+    <li>Keď záznam zmeníš alebo pridáš ty, pracovník ho v appke uvidí označený „zmenil zamestnávateľ“.</li>
+  </ul>
+</section>
+
+<section id="vykazy">
+  <h2><span class="n">6</span>Výkazy, vyúčtovanie a export</h2>
+  <p>Vyber mesiac a pohľad.</p>
+  <div class="two">
+    <div class="card"><h3>Na pracovníka</h3><p>Typ, odpracované dni, hodiny, cena práce, zálohy, hotovosť, prenos mínusu, <b>Doplatiť</b>, hotovosť bez dokladu (s tlačidlom Odrátať), dovolenka, PN, voľno a počet upravených záznamov. Pod každým rozpis podľa zákaziek.</p></div>
+    <div class="card"><h3>Jeden pracovník</h3><p>Mesačný výkaz jedného pracovníka (aj ťukom na meno v tabuľke Na pracovníka alebo tlačidlom <b>Mesačný výkaz</b> pri pracovníkovi): jeden riadok na deň s príchodom, odchodom, zákazkou a úlohou, neprítomnosť, súčty podľa zákaziek a úloh a vyúčtovanie. <b>Tlačiť / PDF</b> sa vždy vojde na jednu stranu A4, s riadkami na podpis. Bez zaškrtnutia <b>so sadzbou a výplatou</b> obsahuje len hodiny – verzia, ktorú môžeš dať pracovníkovi. <b>Export Excel</b> pridá aj hárok so všetkými záznamami a poznámkami.</p></div>
+    <div class="card"><h3>Na zákazku</h3><p>Hodiny a cena práce za mesiac, celkové čerpanie rozpočtu. Pod každou zákazkou rozpis podľa pracovníkov a úloh.</p></div>
+  </div>
+  <div class="note"><b>Doplatiť</b> = cena práce − zálohy ± hotovosť (nákup za svoje +, zvyšok strhnutý z výplaty −) − mínus z minulého mesiaca. Mínus sa do ďalšieho mesiaca prenesie sám.</div>
+  <ul>
+    <li><b>Export Excel:</b> súbor so 4 hárkami: Pracovníci, Zákazky, Záznamy (každý príchod a odchod s cenou a pôvodnými časmi, pri zaokrúhľovaní aj započítaný príchod a odchod) a Zálohy.</li>
+    <li><b>Export PDF:</b> otvorí tlač prehliadača, v ktorej zvolíš „Uložiť ako PDF“.</li>
+  </ul>
+</section>
+
+<section id="pokladna">
+  <h2><span class="n">7</span>Pokladňa / hotovosť</h2>
+  <ol class="steps">
+    <li><span><b>Dať hotovosť:</b> komu, suma, na čo. Pracovníkovi sa v appke ukáže, že má peniaze na nákup.</span></li>
+    <li><span>Pracovník v appke zadá, koľko minul, a odfotí bloček. Doklad sa objaví ako <b>čaká na kontrolu</b>.</span></li>
+    <li><span><b>Doklad OK:</b> ak suma sedí, je hotovo. Zvyšok do limitu (predvolene 2 €) sa odpíše sám. Väčší zvyšok vyrieš: <b>vrátil</b>, <b>z výplaty</b> alebo <b>odpísať</b>.</span></li>
+    <li><span><b>Vrátiť:</b> pošle doklad pracovníkovi na opravu aj s poznámkou.</span></li>
+  </ol>
+  <ul>
+    <li>Ak pracovník nedoloží bloček do lehoty (predvolene 3 dni), svieti na červeno. <b>Odrátať z výplaty</b> strhne sumu pri vyúčtovaní.</li>
+    <li><b>Nákup za vlastné peniaze:</b> pracovník pošle bloček z appky. Po potvrdení sa suma pripočíta k jeho výplate.</li>
+    <li>Filter podľa stavu a pracovníka, <b>Otvoriť znova</b>, <b>Zmazať</b>, <b>Export Excel</b>.</li>
+  </ul>
+</section>
+
+<section id="naklady">
+  <h2><span class="n">8</span>Náklady a zisk zákaziek</h2>
+  <p>Zapína sa v <b>Nastaveniach</b> zaškrtnutím <b>Sledovať náklady a zisk zákaziek</b>. Firma, ktorá chce len dochádzku, to nemusí zapínať. Pracovníci nič z toho nevidia.</p>
+  <ol class="steps">
+    <li><span><b>Cena zákazky:</b> v zákazke (Upraviť / Cena a zákazník) zadaj zákazníka, <b>predajnú cenu bez DPH</b>, stav (ponuka, beží, hotová, vyfakturovaná, zaplatená) a termín.</span></li>
+    <li><span><b>Doklady:</b> v časti <b>Náklady / doklady</b> alebo v detaile zákazky tlačidlom <b>+ Náklad k zákazke</b>. Zadáš druh (faktúra, bloček, iný), dodávateľa, číslo, dátum, sumu bez DPH a kategóriu, priložíš fotku alebo PDF.</span></li>
+    <li><span><b>Rozdelenie:</b> jeden doklad sa dá rozdeliť na viac zákaziek a kategórií (napr. faktúra za plech pre dve zákazky). Riadok bez zákazky ostane <b>nepriradený</b> a dá sa doplniť neskôr.</span></li>
+    <li><span><b>Práca</b> sa zaráta sama z dochádzky: hodiny × sadzba pracovníka. Pri TPP sa sadzba vynásobí koeficientom z Nastavení (odvody zamestnávateľa, predvolene 1,36), pri živnostníkovi nie.</span></li>
+    <li><span><b>Výsledok zákazky</b> v jej detaile: cena − náklady = zisk (alebo strata), percento z ceny, pásik, na čo sa peniaze minuli, a rozpis: doklady podľa kategórií a vlastná práca podľa úloh s hodinami.</span></li>
+  </ol>
+  <ul>
+    <li>V zozname <b>Zákazky</b> je pri každej stav a výsledok. Zelená = v pluse, oranžová = zisk pod hranicou z Nastavení (predvolene 10 %), červená = strata.</li>
+    <li>Pri dodávateľovi sa pamätá posledná kategória, takže pri ďalšom doklade od neho sa predvyplní sama.</li>
+    <li>Kategórie nákladov sa nastavia podľa zamerania firmy a dajú sa upraviť v Nastaveniach (premenovať, prestať ponúkať, pridať, zmazať).</li>
+    <li><b>Rozpočet na prácu</b> pri zákazke sa ráta ako doteraz zo sadzieb (mzdy), bez koeficientu TPP.</li>
+    <li>Hotovosť z <b>Pokladne</b> sa do nákladov zákazky zatiaľ nepreberá sama. Ak bloček patrí k zákazke, zadaj ho aj ako doklad.</li>
+  </ul>
+  <h3>Dvojstupňové overenie</h3>
+  <p>V <b>Nastaveniach</b> v časti <b>Dvojstupňové overenie (môj účet)</b> → <b>Zapnúť</b>. Do aplikácie v mobile (Google Authenticator, Microsoft Authenticator…) naskenuješ QR kód a opíšeš prvý kód. Odvtedy sa pri prihlásení po hesle zadáva aj 6-miestny kód z mobilu. Ceny, náklady a doklady databáza bez kódu nevydá, takže samotné ukradnuté heslo nestačí.</p>
+  <ul>
+    <li><b>Vyžadovať od všetkých správcov firmy:</b> kto ho nemá, pri ďalšom prihlásení si ho musí nastaviť. Zapnúť to môžeš, až keď si prihlásený s kódom.</li>
+    <li>Odporúčame pridať aj druhé zariadenie (<b>Pridať ďalšie zariadenie</b>), aby si sa pri strate mobilu dostal dnu.</li>
+    <li>Pracovníci v appke sa prihlasujú kódom ako doteraz, dvojstupňové overenie sa ich netýka.</li>
+  </ul>
+</section>
+
+<section id="ulohy">
+  <h2><span class="n">9</span>Úlohy</h2>
+  <p>Zoznam prác s číslom 0–99. Pridáš číslo a názov, názov prepíšeš priamo v tabuľke. Zaškrtnutie <b>ponúkať</b> určuje, či sa úloha ukazuje v appke. Úloha 0 = Nezaradené. Predvolený zoznam sa nastaví podľa <b>zamerania firmy</b> v Nastaveniach.</p>
+</section>
+
+<section id="sadzby">
+  <h2><span class="n">10</span>Sadzby</h2>
+  <p>Sadzby sú <b>hodinová mzda alebo odmena, ktorú platíš pracovníkovi</b>, nie cena pre zákazníka. Z nich sa počíta cena práce vo výkazoch, suma Doplatiť pri výplate a čerpanie rozpočtu zákazky.</p>
+  <p>Cena práce = odpracované hodiny × sadzba. Sadzba sa hľadá v tomto poradí:</p>
+  <ol>
+    <li><b>Výnimka</b> z časti Sadzby. Vyhrá najkonkrétnejšia: úloha &gt; zákazka &gt; pracovník. Napríklad „Peter, montáž u zákazníka, 15 €/h“ alebo „všetci na zákazke Slovalco – údržba 16 €/h“.</li>
+    <li><b>Sadzba pracovníka</b> z jeho karty.</li>
+    <li><b>Základná sadzba firmy</b> z Nastavení.</li>
+  </ol>
+</section>
+
+<section id="nastavenia">
+  <h2><span class="n">11</span>Nastavenia</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Nastavenie</th><th>Čo robí</th><th>Predvolené</th></tr></thead>
+    <tbody>
+      <tr><td>Názov firmy</td><td>Ukazuje sa pracovníkom v appke a vo výkazoch.</td><td>–</td></tr>
+      <tr><td>Zameranie firmy</td><td><b>Stavebná firma</b>, <b>Kovovýroba / zámočnícka dielňa</b> (všeobecné úlohy: Dielňa – výroba, Montáž u zákazníka, Nákup, Zásobovanie / doprava, Údržba strojov, Upratovanie, Reklamácia) alebo <b>Všeobecná</b>. Po zmene sa ponúkne nastavenie zoznamu úloh; úlohy, ktoré do zamerania nepatria, sa len prestanú ponúkať (staré záznamy ich majú ďalej). Podľa zamerania sa ponúkajú aj zaradenia pracovníkov.</td><td>stavebná</td></tr>
+      <tr><td>Typ práce</td><td><b>Práca v teréne</b>: zákazky na rôznych miestach, GPS podľa nastavenia. <b>Práca v sídle firmy</b>: GPS je vždy vypnuté a pracovník sa na súhlas nepýta; bez zákaziek má len Príchod a Odchod, so zákazkami si prepína, na čom robí (aj skenovaním QR kódu); bez mapy v Kto je kde.</td><td>v teréne</td></tr>
+      <tr><td>Fotky k práci</td><td>Pracovník môže k záznamu pridať fotku. Vypnuté = tlačidlo Fotka v appke nie je.</td><td>zapnuté</td></tr>
+      <tr><td>Poznámky</td><td>Pracovník môže napísať, čo robil. Vypnuté = tlačidlo Poznámka v appke nie je.</td><td>zapnuté</td></tr>
+      <tr><td>Zaokrúhľovať čas</td><td>Nezaokrúhľovať, alebo na 5, 10, 15, 30 minút. Len prvý príchod a posledný odchod dňa, nie presun medzi zákazkami. Skutočný čas ostáva uložený.</td><td>nezaokrúhľovať</td></tr>
+      <tr><td>Ako zaokrúhľovať</td><td><b>V prospech zamestnanca</b> (príchod nadol, odchod nahor), <b>na najbližší čas</b> (pri 15 min: 8:05 → 8:00, 16:27 → 16:30) alebo <b>v prospech firmy</b> (príchod nahor, odchod nadol).</td><td>v prospech zamestnanca</td></tr>
+      <tr><td>Zaznamenávať polohu (GPS)</td><td>Poloha len pri Príchode, automatický výber zákazky. Každý pracovník musí súhlasiť.</td><td>vypnuté</td></tr>
+      <tr><td>Prestávky / obed</td><td>V appke sa objaví tlačidlo Prestávka. Prestávka sa neráta do hodín.</td><td>vypnuté</td></tr>
+      <tr><td>Základná hodinová sadzba €</td><td>Predvolená hodinová mzda pracovníka (nie cena pre zákazníka). Platí pre každého, kto nemá v karte vlastnú sadzbu ani výnimku v časti Sadzby.</td><td>0 €</td></tr>
+      <tr><td>Okruh zákazky (m)</td><td>Vzdialenosť, v ktorej sa príchod počíta ako „na mieste“. Pri práci v sídle firmy sa neukazuje.</td><td>500 m</td></tr>
+      <tr><td>Pripomenúť zabudnutý odchod od</td><td>Od tejto hodiny appka pripomenie Odchod.</td><td>18:00</td></tr>
+      <tr><td>Upozorniť po (hodinách v kuse)</td><td>Dlhšia zmena sa ukáže ako zabudnutý odchod. Rieši aj nočné zmeny.</td><td>12 h</td></tr>
+      <tr><td>Upozornenie na rozpočet pri</td><td>Pri tomto čerpaní rozpočtu zákazky príde výstraha.</td><td>80 %</td></tr>
+      <tr><td>Doklad za hotovosť do</td><td>Lehota na bloček, potom svieti na červeno.</td><td>3 dni</td></tr>
+      <tr><td>Drobný zvyšok odpísať do</td><td>Menší zvyšok z hotovosti sa odpíše sám.</td><td>2 €</td></tr>
+      <tr><td>GPS súradnice mazať po</td><td>Potom ostane len „na mieste áno / nie“ a vzdialenosť.</td><td>90 dní</td></tr>
+      <tr><td>Fotky k práci mazať po</td><td>Fotky k záznamom sa zmažú. Bločky z pokladne ostávajú (účtovné doklady).</td><td>365 dní</td></tr>
+      <tr><td>Sledovať náklady a zisk zákaziek</td><td>Zapne cenu zákazky, doklady, kategórie nákladov a výsledok zákazky.</td><td>vypnuté</td></tr>
+      <tr><td>Hodina TPP stojí firmu (× sadzba)</td><td>Koeficient na odvody zamestnávateľa pri výpočte nákladu práce na zákazke. Živnostník = len sadzba.</td><td>1,36</td></tr>
+      <tr><td>Upozorniť pri zisku pod</td><td>Zákazka s nižším ziskom (v % z ceny) sa označí oranžovou.</td><td>10 %</td></tr>
+      <tr><td>Prevádzkovateľ</td><td>Samostatné polia: názov firmy, sídlo, IČO a kontakt (povinné), zodpovedná osoba (nepovinné). Pracovník ich vidí v appke v časti Ochrana údajov.</td><td>názov z Nastavení</td></tr>
+      <tr><td>Odkaz na celú informáciu</td><td>Odkaz na tvoju informáciu o spracúvaní osobných údajov (nepovinné).</td><td>–</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">Mazanie po lehote prebehne samo raz denne, keď sa prihlásiš do administrácie.</p>
+</section>
+
+<section id="gps">
+  <h2><span class="n">12</span>Poloha a súkromie pracovníkov</h2>
+  <ul>
+    <li>Pri type práce <b>v sídle firmy</b> sa poloha nezisťuje vôbec. Fotoaparát pri skenovaní QR kódu beží len počas skenovania a obraz sa nikam neposiela.</li>
+    <li>Poloha sa ukladá <b>iba v okamihu Príchodu</b> (aj pri presune na inú zákazku). Pri Odchode sa neukladá. Appka nesleduje pohyb počas dňa ani mimo práce a keď je zatvorená, nebeží.</li>
+    <li>Presné súradnice sa po lehote z Nastavení zmažú, ostane len „na mieste áno / nie“ a vzdialenosť.</li>
+    <li>Bez súhlasu pracovníka sa záznamy ukladajú bez polohy. Pracovník môže súhlas kedykoľvek zrušiť.</li>
+    <li>Appka posiela len to, čo pracovník zadá: časy, zákazku, úlohu, poznámku, prestávky, fotky, bločky a sumy. Z mobilu nič iné nečíta. Z fotiek sa odstraňujú skryté údaje vrátane miesta odfotenia.</li>
+    <li>Záznamy pracovníka vidí iba administrácia firmy. Pracovníci nevidia záznamy kolegov.</li>
+    <li>Pracovník má v appke obrazovku <b>Ochrana údajov</b> s týmito informáciami a s prevádzkovateľom z Nastavení.</li>
+    <li>Appka ani administrácia nič neposielajú Googlu ani iným firmám, písmo je uložené priamo v appke.</li>
+  </ul>
+  <div class="danger">Pred spustením si prečítaj <a href="https://grafmill.github.io/dochadzka/docs/gdpr.html">GDPR podklady</a>: informáciu pre zamestnancov, čo treba urobiť ako zamestnávateľ, a navrhované úpravy appky. Finálnu zhodu s GDPR má potvrdiť právnik.</div>
+</section>
+
+<section id="supis">
+  <h2><span class="n">13</span>Súpis funkcií</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Oblasť</th><th>Funkcia</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="15">Appka pracovníka</td><td>Inštalácia na plochu (Android, iPhone), prihlásenie kódom alebo odkazom</td></tr>
+      <tr><td>Príchod jedným ťuknutím, zákazka podľa GPS alebo naposledy použitá, „Iné“ s vlastným textom</td></tr>
+      <tr><td>Úloha číslom 0–99, posledné 4 úlohy na jedno ťuknutie, zoznam úloh</td></tr>
+      <tr><td>Poznámka a fotky k záznamu (aj neskôr počas dňa)</td></tr>
+      <tr><td>Presun na inú zákazku alebo úlohu (predošlá práca sa ukončí sama)</td></tr>
+      <tr><td>Odchod, súčet hodín dnes, tento týždeň a za mesiac, prehľad po dňoch</td></tr>
+      <tr><td>Oprava času príchodu a odchodu (zamestnávateľ vidí ! a pôvodný čas), aj odchod po polnoci</td></tr>
+      <tr><td>Prestávka (ak je zapnutá v Nastaveniach)</td></tr>
+      <tr><td>Pripomienka zabudnutého odchodu (od hodiny a po dĺžke zmeny)</td></tr>
+      <tr><td>Hotovosť na nákup: vyúčtovanie s fotkou bločku; nákup za vlastné peniaze</td></tr>
+      <tr><td>Offline režim: záznamy počkajú v mobile a odošlú sa samy</td></tr>
+      <tr><td>Skenovanie QR alebo čiarového kódu zákazky: Príchod alebo presun jedným pohybom</td></tr>
+      <tr><td>Práca v sídle firmy: len Príchod a Odchod, alebo „Na čom robím“ so zákazkami; bez GPS, fotky a poznámka podľa nastavenia</td></tr>
+      <tr><td>Hodiny so zaokrúhlením podľa nastavenia firmy</td></tr>
+      <tr><td>Súhlas s polohou a jeho zrušenie, obrazovka Ochrana údajov, označenie záznamov zmenených zamestnávateľom, odhlásenie z mobilu</td></tr>
+      <tr><td rowspan="4">Kto je kde</td><td>Počty v práci / neprišli / výstrahy / hotovosť bez dokladu</td></tr>
+      <tr><td>Výstrahy: zabudnutý odchod, mimo miesta zákazky, rozpočet, opravy času, doklady</td></tr>
+      <tr><td>Ľudia zoskupení podľa zákaziek, kto odišiel, kto chýba, dovolenka a PN</td></tr>
+      <tr><td>Mapa zákaziek a miest príchodu, automatická obnova každých 30 s</td></tr>
+      <tr><td rowspan="4">Zákazky</td><td>Pridanie, úprava, ukončenie, zmazanie; bod na mape a vyhľadanie adresy; okruh</td></tr>
+      <tr><td>Rozpočet na prácu s výstrahou a odhadom, kedy sa minie</td></tr>
+      <tr><td>Kód zákazky a tlač QR štítkov (všetky aktívne zákazky alebo jedna)</td></tr>
+      <tr><td>Detail: kto tu je, hodiny dnes / mesiac / celkom, práca podľa úloh, dnešné fotky a poznámky</td></tr>
+      <tr><td rowspan="5">Pracovníci</td><td>Pridanie, TPP / živnostník, vlastná sadzba, telefón, poznámka</td></tr>
+      <tr><td>Odkaz do mobilu cez SMS / WhatsApp / kopírovanie, nový kód (odhlási starý mobil)</td></tr>
+      <tr><td>Zálohy, neprítomnosť od–do (dovolenka, PN, voľno; len TPP)</td></tr>
+      <tr><td>Neaktívny pracovník a jeho aktivácia, zmazanie pracovníka bez záznamov, stav súhlasu s GPS s dátumom</td></tr>
+      <tr><td>Export údajov pracovníka (právo na prístup), anonymizácia bývalého pracovníka</td></tr>
+      <tr><td rowspan="2">Dochádzka</td><td>Všetky záznamy s filtrami (mesiac, pracovník, zákazka, len upravené)</td></tr>
+      <tr><td>Ručné pridanie, úprava a zmazanie záznamu (aj s fotkami), GPS pri príchode, fotky, skutočný a započítaný (zaokrúhlený) čas</td></tr>
+      <tr><td rowspan="4">Výkazy</td><td>Mesačný výkaz na pracovníka: hodiny, cena práce, zálohy, hotovosť, prenos mínusu, Doplatiť, neprítomnosť</td></tr>
+      <tr><td>Mesačný výkaz na zákazku s rozpisom podľa pracovníkov a úloh</td></tr>
+      <tr><td>Export Excel (4 hárky) a PDF cez tlač</td></tr>
+      <tr><td>Mesačný výkaz jedného pracovníka na jednu stranu A4 (s peniazmi alebo len hodiny), Excel</td></tr>
+      <tr><td rowspan="2">Pokladňa</td><td>Vydanie hotovosti, kontrola bločkov s fotkou, vrátenie na opravu, vyrovnanie zvyšku</td></tr>
+      <tr><td>Lehota na doklad, odrátanie z výplaty, nákupy za vlastné, export Excel</td></tr>
+      <tr><td rowspan="3">Náklady a zisk</td><td>Zákazník, predajná cena bez DPH, stav a termín zákazky; výsledok (cena − náklady = zisk) v detaile aj v zozname zákaziek</td></tr>
+      <tr><td>Doklady (faktúra, bloček, iný) s fotkou alebo PDF, rozdelenie na viac zákaziek a kategórií, nepriradené položky, filter podľa mesiaca a zákazky</td></tr>
+      <tr><td>Práca z dochádzky s koeficientom TPP, kategórie nákladov podľa zamerania firmy, dvojstupňové overenie správcov</td></tr>
+      <tr><td>Úlohy a sadzby</td><td>Úlohy 0–99 so zapínaním v appke; sadzby: firma, pracovník, výnimky na zákazku a úlohu</td></tr>
+      <tr><td>Nastavenia</td><td>Typ práce (v teréne / v sídle firmy), fotky, poznámky, zaokrúhľovanie času, GPS, prestávky, sadzba, okruh, pripomienky, limit rozpočtu, lehota a limit pokladne, lehoty mazania GPS a fotiek, prevádzkovateľ</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">Zatiaľ nie je: prístup pre koncového zákazníka, viac správcov jednej firmy, živé obnovovanie bez 30-sekundového intervalu.</p>
+</section>
+
+<footer>PROFE Industry, s. r. o. · Štrková 95/21, 010 09 Žilina · Dochádzka · návod pre správcu · november 2026</footer>
+</div>
+</body></html>
