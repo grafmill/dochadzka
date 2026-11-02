@@ -278,6 +278,10 @@ const activeProjects=()=>S.projects.filter(p=>p.active!==false);
 const activeTasks=()=>S.tasks.filter(t=>t.active!==false);
 const hasPos=p=>p&&p.lat!=null&&p.lng!=null;
 const task=n=>S.tasks.find(t=>t.num===n);
+// úloha pri Príchode: prvý Príchod dňa = predvolená úloha podľa zaradenia (ak ju zamestnávateľ nastavil), inak naposledy použitá
+const startTask=()=>{ const d=S.worker&&S.worker.defaultTask, t=d!=null&&task(d);
+  if(t&&t.active!==false&&!S.entries.some(e=>isToday(e.start))) return d;
+  return task(S.last.taskNum)?S.last.taskNum:0; };
 const office=()=>S.company.workMode==="office";
 const projName=e=>e.projectId?(proj(e.projectId)?.name||"?"):(!e.otherText&&office()?"Práca":"Iné"+(e.otherText?": "+e.otherText:""));
 // v sídle firmy bez zákaziek stačí Príchod / Odchod; úlohy len ak ich firma používa
@@ -333,7 +337,7 @@ let draft=null; // {projectId, otherText, taskNum, note, photos, source:'gps'|'l
 let switching=false;
 async function prepareDraft(){
   let pid=S.last.projectId; if(pid&&!activeProjects().some(p=>p.id===pid)) pid=activeProjects()[0]?.id??null;
-  draft={projectId:pid,otherText:"",taskNum:task(S.last.taskNum)?S.last.taskNum:0,note:"",photos:[],source:gpsOn()?"locating":"last"};
+  draft={projectId:pid,otherText:"",taskNum:startTask(),note:"",photos:[],source:gpsOn()?"locating":"last"};
   render();
   if(gpsOn()){
     lastPos=await getPos();
@@ -397,7 +401,8 @@ async function sync(){
 async function pull(){
   if(!live()||!sb||!online()) return;
   try{
-    const me=await q(sb.from("workers").select("id,name,type,gps_consent,company_id").eq("id",S.workerId));
+    const me=await q(sb.from("workers").select("id,name,type,gps_consent,company_id,role,default_task").eq("id",S.workerId))
+      .catch(()=>q(sb.from("workers").select("id,name,type,gps_consent,company_id").eq("id",S.workerId)));   // bez SQL 0006
     if(!me.length){ S.loggedOut=true; save(); render(); return; }
     const w=me[0]; S.loggedOut=false;
     const since=new Date(Date.now()-40*864e5).toISOString();
@@ -410,7 +415,7 @@ async function pull(){
       q(sb.from("cash_items").select("*").eq("worker_id",w.id).neq("status","done").order("issued_at")).catch(()=>S.cash||[])
     ]);
     S.cash=cash;
-    S.companyId=w.company_id; S.worker={id:w.id,name:w.name,type:w.type};
+    S.companyId=w.company_id; S.worker={id:w.id,name:w.name,type:w.type,role:w.role||"",defaultTask:w.default_task??null};
     if(S.gpsConsent===null||w.gps_consent!==null) S.gpsConsent=w.gps_consent;
     S.company={name:c.name,gpsEnabled:c.gps_enabled,breaksEnabled:c.breaks_enabled,defaultRadius:c.default_radius,forgotCheckoutHour:c.forgot_checkout_hour,maxShiftHours:c.max_shift_hours,
       privacyController:c.privacy_controller||"",privacyUrl:c.privacy_url||"",gpsKeepDays:c.gps_keep_days??null,photoKeepDays:c.photo_keep_days??null,
@@ -515,7 +520,7 @@ function render(){
   const weekMs=S.entries.filter(x=>sameWeek(x.start)).reduce((a,x)=>a+worked(x),0);
   let html=`
   <div class="top">
-    <div class="who"><b>${esc(S.worker.name)}</b><span>${esc(S.company.name)} · ${S.worker.type==="TPP"?"TPP":"živnostník"}${S.mode==="demo"?" · ukážka":""}</span></div>
+    <div class="who"><b>${esc(S.worker.name)}</b><span>${esc(S.company.name)} · ${S.worker.role?esc(S.worker.role):S.worker.type==="TPP"?"TPP":"živnostník"}${S.mode==="demo"?" · ukážka":""}</span></div>
     <div class="sync" id="sync"></div>
     <button class="iconbtn" aria-label="Nastavenia" data-act="settings">${ICON.gear}</button>
   </div>
@@ -761,7 +766,7 @@ function scanned(txt){
   if(!p){ toast("Kód „"+v+"“ nepatrí žiadnej zákazke"); return; }
   const cur=openEntry();
   if(cur&&cur.projectId===p.id&&!switching){ toast("Už robíš na: "+p.name); return; }
-  const tn=cur?cur.taskNum:(task(S.last.taskNum)?S.last.taskNum:0);
+  const tn=cur?cur.taskNum:startTask();
   draft={projectId:p.id,otherText:"",taskNum:tn,note:"",photos:[],source:"scan"};
   switching=!!cur; checkIn();
 }

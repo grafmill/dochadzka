@@ -131,6 +131,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <h2><span class="n">4</span>Pracovníci</h2>
   <ul>
     <li><b>+ Pridať pracovníka:</b> meno a priezvisko, telefón, typ <b>TPP</b> alebo <b>živnostník</b>, vlastná hodinová sadzba (prázdne = základná sadzba firmy) a poznámka.</li>
+    <li><b>Zaradenie a predvolená úloha:</b> napr. Zvárač → 1 Dielňa – výroba. Pri prvom Príchode dňa sa pracovníkovi táto úloha nastaví sama (inak appka ponúkne naposledy použitú). Keď ide na nákup alebo na montáž, prepne si úlohu jedným ťuknutím. Pri výbere zaradenia zo zoznamu sa predvolená úloha navrhne sama.</li>
     <li><b>Odkaz do mobilu:</b> 8-znakový kód a odkaz. Tlačidlá <b>Kopírovať správu</b>, <b>Poslať SMS</b>, <b>WhatsApp</b>. V zozname vidíš, či je pracovník už prihlásený.</li>
     <li><b>Nový kód:</b> keď pracovník stratí alebo vymení mobil. Starý mobil sa tým odhlási.</li>
     <li><b>Poloha:</b> v zozname vidíš, či pracovník súhlasí s GPS, nesúhlasí alebo ešte neodpovedal, a od kedy (dátum a čas súhlasu alebo odvolania).</li>
@@ -159,6 +160,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <p>Vyber mesiac a pohľad.</p>
   <div class="two">
     <div class="card"><h3>Na pracovníka</h3><p>Typ, odpracované dni, hodiny, cena práce, zálohy, hotovosť, prenos mínusu, <b>Doplatiť</b>, hotovosť bez dokladu (s tlačidlom Odrátať), dovolenka, PN, voľno a počet upravených záznamov. Pod každým rozpis podľa zákaziek.</p></div>
+    <div class="card"><h3>Jeden pracovník</h3><p>Mesačný výkaz jedného pracovníka (aj ťukom na meno v tabuľke Na pracovníka alebo tlačidlom <b>Mesačný výkaz</b> pri pracovníkovi): jeden riadok na deň s príchodom, odchodom, zákazkou a úlohou, neprítomnosť, súčty podľa zákaziek a úloh a vyúčtovanie. <b>Tlačiť / PDF</b> sa vždy vojde na jednu stranu A4, s riadkami na podpis. Bez zaškrtnutia <b>so sadzbou a výplatou</b> obsahuje len hodiny – verzia, ktorú môžeš dať pracovníkovi. <b>Export Excel</b> pridá aj hárok so všetkými záznamami a poznámkami.</p></div>
     <div class="card"><h3>Na zákazku</h3><p>Hodiny a cena práce za mesiac, celkové čerpanie rozpočtu. Pod každou zákazkou rozpis podľa pracovníkov a úloh.</p></div>
   </div>
   <div class="note"><b>Doplatiť</b> = cena práce − zálohy ± hotovosť (nákup za svoje +, zvyšok strhnutý z výplaty −) − mínus z minulého mesiaca. Mínus sa do ďalšieho mesiaca prenesie sám.</div>
@@ -185,7 +187,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 
 <section id="ulohy">
   <h2><span class="n">8</span>Úlohy</h2>
-  <p>Zoznam prác s číslom 0–99. Pridáš číslo a názov, názov prepíšeš priamo v tabuľke. Zaškrtnutie <b>ponúkať</b> určuje, či sa úloha ukazuje v appke. Úloha 0 = Nezaradené.</p>
+  <p>Zoznam prác s číslom 0–99. Pridáš číslo a názov, názov prepíšeš priamo v tabuľke. Zaškrtnutie <b>ponúkať</b> určuje, či sa úloha ukazuje v appke. Úloha 0 = Nezaradené. Predvolený zoznam sa nastaví podľa <b>zamerania firmy</b> v Nastaveniach.</p>
 </section>
 
 <section id="sadzby">
@@ -205,6 +207,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
     <thead><tr><th>Nastavenie</th><th>Čo robí</th><th>Predvolené</th></tr></thead>
     <tbody>
       <tr><td>Názov firmy</td><td>Ukazuje sa pracovníkom v appke a vo výkazoch.</td><td>–</td></tr>
+      <tr><td>Zameranie firmy</td><td><b>Stavebná firma</b>, <b>Kovovýroba / zámočnícka dielňa</b> (všeobecné úlohy: Dielňa – výroba, Montáž u zákazníka, Nákup, Zásobovanie / doprava, Údržba strojov, Upratovanie, Reklamácia) alebo <b>Všeobecná</b>. Po zmene sa ponúkne nastavenie zoznamu úloh; úlohy, ktoré do zamerania nepatria, sa len prestanú ponúkať (staré záznamy ich majú ďalej). Podľa zamerania sa ponúkajú aj zaradenia pracovníkov.</td><td>stavebná</td></tr>
       <tr><td>Typ práce</td><td><b>Práca v teréne</b>: zákazky na rôznych miestach, GPS podľa nastavenia. <b>Práca v sídle firmy</b>: GPS je vždy vypnuté a pracovník sa na súhlas nepýta; bez zákaziek má len Príchod a Odchod, so zákazkami si prepína, na čom robí (aj skenovaním QR kódu); bez mapy v Kto je kde.</td><td>v teréne</td></tr>
       <tr><td>Fotky k práci</td><td>Pracovník môže k záznamu pridať fotku. Vypnuté = tlačidlo Fotka v appke nie je.</td><td>zapnuté</td></tr>
       <tr><td>Poznámky</td><td>Pracovník môže napísať, čo robil. Vypnuté = tlačidlo Poznámka v appke nie je.</td><td>zapnuté</td></tr>
@@ -278,9 +281,10 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
       <tr><td>Export údajov pracovníka (právo na prístup), anonymizácia bývalého pracovníka</td></tr>
       <tr><td rowspan="2">Dochádzka</td><td>Všetky záznamy s filtrami (mesiac, pracovník, zákazka, len upravené)</td></tr>
       <tr><td>Ručné pridanie, úprava a zmazanie záznamu (aj s fotkami), GPS pri príchode, fotky, skutočný a započítaný (zaokrúhlený) čas</td></tr>
-      <tr><td rowspan="3">Výkazy</td><td>Mesačný výkaz na pracovníka: hodiny, cena práce, zálohy, hotovosť, prenos mínusu, Doplatiť, neprítomnosť</td></tr>
+      <tr><td rowspan="4">Výkazy</td><td>Mesačný výkaz na pracovníka: hodiny, cena práce, zálohy, hotovosť, prenos mínusu, Doplatiť, neprítomnosť</td></tr>
       <tr><td>Mesačný výkaz na zákazku s rozpisom podľa pracovníkov a úloh</td></tr>
       <tr><td>Export Excel (4 hárky) a PDF cez tlač</td></tr>
+      <tr><td>Mesačný výkaz jedného pracovníka na jednu stranu A4 (s peniazmi alebo len hodiny), Excel</td></tr>
       <tr><td rowspan="2">Pokladňa</td><td>Vydanie hotovosti, kontrola bločkov s fotkou, vrátenie na opravu, vyrovnanie zvyšku</td></tr>
       <tr><td>Lehota na doklad, odrátanie z výplaty, nákupy za vlastné, export Excel</td></tr>
       <tr><td>Úlohy a sadzby</td><td>Úlohy 0–99 so zapínaním v appke; sadzby: firma, pracovník, výnimky na zákazku a úlohu</td></tr>
