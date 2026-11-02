@@ -79,7 +79,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 </div>
 
 <nav class="toc" aria-label="Obsah">
-  <a href="#start">Prvé kroky</a><a href="#prehlad">Kto je kde</a><a href="#zakazky">Zákazky</a><a href="#pracovnici">Pracovníci</a><a href="#dochadzka">Dochádzka</a><a href="#vykazy">Výkazy a export</a><a href="#pokladna">Pokladňa</a><a href="#ulohy">Úlohy</a><a href="#sadzby">Sadzby</a><a href="#nastavenia">Nastavenia</a><a href="#gps">Poloha a súkromie</a><a href="#supis">Súpis funkcií</a>
+  <a href="#start">Prvé kroky</a><a href="#prehlad">Kto je kde</a><a href="#zakazky">Zákazky</a><a href="#pracovnici">Pracovníci</a><a href="#dochadzka">Dochádzka</a><a href="#vykazy">Výkazy a export</a><a href="#pokladna">Pokladňa</a><a href="#naklady">Náklady a zisk zákaziek</a><a href="#ulohy">Úlohy</a><a href="#sadzby">Sadzby</a><a href="#nastavenia">Nastavenia</a><a href="#gps">Poloha a súkromie</a><a href="#supis">Súpis funkcií</a>
 </nav>
 
 <section id="start">
@@ -171,7 +171,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 </section>
 
 <section id="pokladna">
-  <h2><span class="n">7</span>Pokladňa a doklady</h2>
+  <h2><span class="n">7</span>Pokladňa / hotovosť</h2>
   <ol class="steps">
     <li><span><b>Dať hotovosť:</b> komu, suma, na čo. Pracovníkovi sa v appke ukáže, že má peniaze na nákup.</span></li>
     <li><span>Pracovník v appke zadá, koľko minul, a odfotí bloček. Doklad sa objaví ako <b>čaká na kontrolu</b>.</span></li>
@@ -185,13 +185,39 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   </ul>
 </section>
 
+<section id="naklady">
+  <h2><span class="n">8</span>Náklady a zisk zákaziek</h2>
+  <p>Zapína sa v <b>Nastaveniach</b> zaškrtnutím <b>Sledovať náklady a zisk zákaziek</b>. Firma, ktorá chce len dochádzku, to nemusí zapínať. Pracovníci nič z toho nevidia.</p>
+  <ol class="steps">
+    <li><span><b>Cena zákazky:</b> v zákazke (Upraviť / Cena a zákazník) zadaj zákazníka, <b>predajnú cenu bez DPH</b>, stav (ponuka, beží, hotová, vyfakturovaná, zaplatená) a termín.</span></li>
+    <li><span><b>Doklady:</b> v časti <b>Náklady / doklady</b> alebo v detaile zákazky tlačidlom <b>+ Náklad k zákazke</b>. Zadáš druh (faktúra, bloček, iný), dodávateľa, číslo, dátum, sumu bez DPH a kategóriu, priložíš fotku alebo PDF.</span></li>
+    <li><span><b>Rozdelenie:</b> jeden doklad sa dá rozdeliť na viac zákaziek a kategórií (napr. faktúra za plech pre dve zákazky). Riadok bez zákazky ostane <b>nepriradený</b> a dá sa doplniť neskôr.</span></li>
+    <li><span><b>Práca</b> sa zaráta sama z dochádzky: hodiny × sadzba pracovníka. Pri TPP sa sadzba vynásobí koeficientom z Nastavení (odvody zamestnávateľa, predvolene 1,36), pri živnostníkovi nie.</span></li>
+    <li><span><b>Výsledok zákazky</b> v jej detaile: cena − náklady = zisk (alebo strata), percento z ceny, pásik, na čo sa peniaze minuli, a rozpis: doklady podľa kategórií a vlastná práca podľa úloh s hodinami.</span></li>
+  </ol>
+  <ul>
+    <li>V zozname <b>Zákazky</b> je pri každej stav a výsledok. Zelená = v pluse, oranžová = zisk pod hranicou z Nastavení (predvolene 10 %), červená = strata.</li>
+    <li>Pri dodávateľovi sa pamätá posledná kategória, takže pri ďalšom doklade od neho sa predvyplní sama.</li>
+    <li>Kategórie nákladov sa nastavia podľa zamerania firmy a dajú sa upraviť v Nastaveniach (premenovať, prestať ponúkať, pridať, zmazať).</li>
+    <li><b>Rozpočet na prácu</b> pri zákazke sa ráta ako doteraz zo sadzieb (mzdy), bez koeficientu TPP.</li>
+    <li>Hotovosť z <b>Pokladne</b> sa do nákladov zákazky zatiaľ nepreberá sama. Ak bloček patrí k zákazke, zadaj ho aj ako doklad.</li>
+  </ul>
+  <h3>Dvojstupňové overenie</h3>
+  <p>V <b>Nastaveniach</b> v časti <b>Dvojstupňové overenie (môj účet)</b> → <b>Zapnúť</b>. Do aplikácie v mobile (Google Authenticator, Microsoft Authenticator…) naskenuješ QR kód a opíšeš prvý kód. Odvtedy sa pri prihlásení po hesle zadáva aj 6-miestny kód z mobilu. Ceny, náklady a doklady databáza bez kódu nevydá, takže samotné ukradnuté heslo nestačí.</p>
+  <ul>
+    <li><b>Vyžadovať od všetkých správcov firmy:</b> kto ho nemá, pri ďalšom prihlásení si ho musí nastaviť. Zapnúť to môžeš, až keď si prihlásený s kódom.</li>
+    <li>Odporúčame pridať aj druhé zariadenie (<b>Pridať ďalšie zariadenie</b>), aby si sa pri strate mobilu dostal dnu.</li>
+    <li>Pracovníci v appke sa prihlasujú kódom ako doteraz, dvojstupňové overenie sa ich netýka.</li>
+  </ul>
+</section>
+
 <section id="ulohy">
-  <h2><span class="n">8</span>Úlohy</h2>
+  <h2><span class="n">9</span>Úlohy</h2>
   <p>Zoznam prác s číslom 0–99. Pridáš číslo a názov, názov prepíšeš priamo v tabuľke. Zaškrtnutie <b>ponúkať</b> určuje, či sa úloha ukazuje v appke. Úloha 0 = Nezaradené. Predvolený zoznam sa nastaví podľa <b>zamerania firmy</b> v Nastaveniach.</p>
 </section>
 
 <section id="sadzby">
-  <h2><span class="n">9</span>Sadzby</h2>
+  <h2><span class="n">10</span>Sadzby</h2>
   <p>Sadzby sú <b>hodinová mzda alebo odmena, ktorú platíš pracovníkovi</b>, nie cena pre zákazníka. Z nich sa počíta cena práce vo výkazoch, suma Doplatiť pri výplate a čerpanie rozpočtu zákazky.</p>
   <p>Cena práce = odpracované hodiny × sadzba. Sadzba sa hľadá v tomto poradí:</p>
   <ol>
@@ -202,7 +228,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 </section>
 
 <section id="nastavenia">
-  <h2><span class="n">10</span>Nastavenia</h2>
+  <h2><span class="n">11</span>Nastavenia</h2>
   <div class="tablewrap"><table>
     <thead><tr><th>Nastavenie</th><th>Čo robí</th><th>Predvolené</th></tr></thead>
     <tbody>
@@ -224,6 +250,9 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
       <tr><td>Drobný zvyšok odpísať do</td><td>Menší zvyšok z hotovosti sa odpíše sám.</td><td>2 €</td></tr>
       <tr><td>GPS súradnice mazať po</td><td>Potom ostane len „na mieste áno / nie“ a vzdialenosť.</td><td>90 dní</td></tr>
       <tr><td>Fotky k práci mazať po</td><td>Fotky k záznamom sa zmažú. Bločky z pokladne ostávajú (účtovné doklady).</td><td>365 dní</td></tr>
+      <tr><td>Sledovať náklady a zisk zákaziek</td><td>Zapne cenu zákazky, doklady, kategórie nákladov a výsledok zákazky.</td><td>vypnuté</td></tr>
+      <tr><td>Hodina TPP stojí firmu (× sadzba)</td><td>Koeficient na odvody zamestnávateľa pri výpočte nákladu práce na zákazke. Živnostník = len sadzba.</td><td>1,36</td></tr>
+      <tr><td>Upozorniť pri zisku pod</td><td>Zákazka s nižším ziskom (v % z ceny) sa označí oranžovou.</td><td>10 %</td></tr>
       <tr><td>Prevádzkovateľ</td><td>Samostatné polia: názov firmy, sídlo, IČO a kontakt (povinné), zodpovedná osoba (nepovinné). Pracovník ich vidí v appke v časti Ochrana údajov.</td><td>názov z Nastavení</td></tr>
       <tr><td>Odkaz na celú informáciu</td><td>Odkaz na tvoju informáciu o spracúvaní osobných údajov (nepovinné).</td><td>–</td></tr>
     </tbody>
@@ -232,7 +261,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 </section>
 
 <section id="gps">
-  <h2><span class="n">11</span>Poloha a súkromie pracovníkov</h2>
+  <h2><span class="n">12</span>Poloha a súkromie pracovníkov</h2>
   <ul>
     <li>Pri type práce <b>v sídle firmy</b> sa poloha nezisťuje vôbec. Fotoaparát pri skenovaní QR kódu beží len počas skenovania a obraz sa nikam neposiela.</li>
     <li>Poloha sa ukladá <b>iba v okamihu Príchodu</b> (aj pri presune na inú zákazku). Pri Odchode sa neukladá. Appka nesleduje pohyb počas dňa ani mimo práce a keď je zatvorená, nebeží.</li>
@@ -247,7 +276,7 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
 </section>
 
 <section id="supis">
-  <h2><span class="n">12</span>Súpis funkcií</h2>
+  <h2><span class="n">13</span>Súpis funkcií</h2>
   <div class="tablewrap"><table>
     <thead><tr><th>Oblasť</th><th>Funkcia</th></tr></thead>
     <tbody>
@@ -287,6 +316,9 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
       <tr><td>Mesačný výkaz jedného pracovníka na jednu stranu A4 (s peniazmi alebo len hodiny), Excel</td></tr>
       <tr><td rowspan="2">Pokladňa</td><td>Vydanie hotovosti, kontrola bločkov s fotkou, vrátenie na opravu, vyrovnanie zvyšku</td></tr>
       <tr><td>Lehota na doklad, odrátanie z výplaty, nákupy za vlastné, export Excel</td></tr>
+      <tr><td rowspan="3">Náklady a zisk</td><td>Zákazník, predajná cena bez DPH, stav a termín zákazky; výsledok (cena − náklady = zisk) v detaile aj v zozname zákaziek</td></tr>
+      <tr><td>Doklady (faktúra, bloček, iný) s fotkou alebo PDF, rozdelenie na viac zákaziek a kategórií, nepriradené položky, filter podľa mesiaca a zákazky</td></tr>
+      <tr><td>Práca z dochádzky s koeficientom TPP, kategórie nákladov podľa zamerania firmy, dvojstupňové overenie správcov</td></tr>
       <tr><td>Úlohy a sadzby</td><td>Úlohy 0–99 so zapínaním v appke; sadzby: firma, pracovník, výnimky na zákazku a úlohu</td></tr>
       <tr><td>Nastavenia</td><td>Typ práce (v teréne / v sídle firmy), fotky, poznámky, zaokrúhľovanie času, GPS, prestávky, sadzba, okruh, pripomienky, limit rozpočtu, lehota a limit pokladne, lehoty mazania GPS a fotiek, prevádzkovateľ</td></tr>
     </tbody>
@@ -294,6 +326,6 @@ footer{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font
   <p class="small muted">Zatiaľ nie je: prístup pre koncového zákazníka, viac správcov jednej firmy, živé obnovovanie bez 30-sekundového intervalu.</p>
 </section>
 
-<footer>Dochádzka · návod pre zamestnávateľa · október 2026</footer>
+<footer>Dochádzka · návod pre zamestnávateľa · november 2026</footer>
 </div>
 </body></html>

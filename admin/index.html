@@ -233,6 +233,26 @@ details.card summary{font-weight:600;cursor:pointer}
   .tablewrap td.empty{justify-content:center}
   tr.edited td:first-child{box-shadow:none} tr.edited{border-left:4px solid var(--flag)!important}
 }
+/* výsledok zákazky a doklady */
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.resu{display:flex;flex-direction:column;gap:12px}
+.eq{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.eq .k{flex:1 1 140px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;min-width:0}
+.eq .k.pos,.eq .k.neg,.eq .k.warnc{border-width:2px}
+.eq .k .v{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.1}
+.eq .op{align-self:center;font-family:var(--display);font-size:26px;color:var(--muted)}
+.rbar{display:flex;height:16px;border-radius:6px;overflow:hidden;background:var(--sunk);border:1px solid var(--line)}
+.rbar span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.rtabw{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.rtab tr.grp td{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--sunk);font-weight:600}
+.rtab tr.sub td{font-weight:600}
+.ditems{display:flex;flex-direction:column;gap:8px}
+.ditem{display:grid;grid-template-columns:1.4fr 1.2fr 130px 1fr auto;gap:6px;align-items:center}
+.ditem select,.ditem input{min-height:38px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);padding:6px 10px;min-width:0;width:100%}
+@media (max-width:700px){.ditem{grid-template-columns:1fr 1fr;padding:8px;border:1px solid var(--line);border-radius:12px}.ditem .btn{grid-column:2;justify-self:end}}
+@media (max-width:600px){.eq .op{display:none}.eq .k{flex:1 1 40%}.eq .k:last-child{flex-basis:100%}}
 .qrroot{display:none}
 .qrlabel{display:inline-flex;flex-direction:column;align-items:center;gap:4px;width:62mm;margin:3mm;padding:4mm;border:1px dashed #999;break-inside:avoid;text-align:center;color:#000;vertical-align:top}
 .qrlabel svg{width:44mm;height:44mm}
@@ -291,6 +311,7 @@ details.card summary{font-weight:600;cursor:pointer}
 <script src="../vendor/supabase-2.117.2.js"></script>
 <script src="../vendor/leaflet-1.9.4/leaflet.js"></script>
 <script src="../vendor/xlsx-0.18.5.mini.min.js"></script>
+<script src="naklady.js"></script>
 <script>
 /* =====================================================================
    ZÁKLAD
@@ -412,6 +433,7 @@ async function loadBase() {
     q(sb.from("absences").select("*").eq("company_id", cid).order("date_from", {ascending:false}))
   ]);
   await loadMoney();
+  await loadCosts();
 }
 async function loadMoney() {
   [ADV, CASH] = await Promise.all([
@@ -556,7 +578,7 @@ async function doCreateCompany(f) {
    NAVIGÁCIA
    ===================================================================== */
 const VIEWS = [
-  ["prehlad", "Kto je kde"], ["zakazky", "Zákazky"], ["pokladna", "Pokladňa / doklady"], ["vykazy", "Výkazy a vyúčtovanie"], ["dochadzka", "Dochádzka"],
+  ["prehlad", "Kto je kde"], ["zakazky", "Zákazky"], ["naklady", "Náklady / doklady"], ["pokladna", "Pokladňa / hotovosť"], ["vykazy", "Výkazy a vyúčtovanie"], ["dochadzka", "Dochádzka"],
   ["pracovnici", "Pracovníci"], ["ulohy", "Úlohy"], ["sadzby", "Sadzby"], ["nastavenia", "Nastavenia"]
 ];
 const HIDDEN_VIEWS = ["zakazka"];
@@ -576,7 +598,7 @@ function navBadge(k) {
 function renderNav() {
   const cur = view === "zakazka" ? "zakazky" : view;
   $("#nav").innerHTML = `<div class="brand">Dochádzka</div><div class="firm">${esc(C.name)}</div>
-    ${VIEWS.map(([k, t]) => `<a href="#${k}" class="${cur === k ? "on" : ""}">${t}${navBadge(k)}</a>`).join("")}
+    ${VIEWS.filter(v => v[0] !== "naklady" || costsOn()).map(([k, t]) => `<a href="#${k}" class="${cur === k ? "on" : ""}">${t}${navBadge(k)}</a>`).join("")}
     <div class="grow"></div><div class="me">${esc(USER.email || "")}</div>
     <a href="#" data-act="logout">Odhlásiť</a>`;
   const nCash = cashSummary().n + CASH.filter(c => c.kind === "own" && c.status === "reported").length;
@@ -590,16 +612,18 @@ function openMenu() {
   modal("Menu", `<div class="menu">
     ${item("dochadzka", "<span>Dochádzka – všetky záznamy</span>", nEd ? `<span class="cnt">${nEd} !</span>` : "")}
     ${item("vykazy", "<span>Výkazy, vyúčtovanie a export</span>")}
-    ${item("pokladna", "<span>Pokladňa / doklady</span>", cashSummary().n ? `<span class="cnt or">${cashSummary().n}</span>` : "")}
+    ${costsOn() ? item("naklady", "<span>Náklady / doklady k zákazkám</span>") : ""}
+    ${item("pokladna", "<span>Pokladňa / hotovosť</span>", cashSummary().n ? `<span class="cnt or">${cashSummary().n}</span>` : "")}
     ${item("pracovnici", "<span>Pracovníci a odkazy do mobilu</span>")}
     ${item("zakazky", "<span>Zákazky – pridať, upraviť, rozpočet</span>")}
     <div class="tiles">${item("ulohy", "<b>0–99</b>Úlohy")}${item("sadzby", "<b>€/h</b>Sadzby")}${item("nastavenia", "<b>⚙</b>Nastavenia")}</div>
     <div class="bar" style="margin-top:12px"><span class="muted small" style="flex:1">${esc(USER.email || "")}</span><button class="btn sm" data-act="logout">Odhlásiť</button></div></div>`);
 }
 async function go() {
+  if (!C) return;   // odhlásený (napr. zmena adresy na prihlasovacej obrazovke)
   const [h, qs] = (location.hash.slice(1) || "prehlad").split("?");
   view = h; viewArg = Object.fromEntries(new URLSearchParams(qs || ""));
-  if (!VIEWS.some(v => v[0] === view) && !HIDDEN_VIEWS.includes(view)) view = "prehlad";
+  if ((!VIEWS.some(v => v[0] === view) && !HIDDEN_VIEWS.includes(view)) || (view === "naklady" && !costsOn())) view = "prehlad";
   renderNav();
   if (liveMap) { liveMap.remove(); liveMap = null; }
   const main = $("#main");
@@ -1180,17 +1204,19 @@ function openInvite(id) {
 /* =====================================================================
    ZÁKAZKY – s bodom na mape a okruhom
    ===================================================================== */
+RENDER.naklady = main => renderCosts(main);
 RENDER.zakazky = async main => {
-  const budget = cache.budget = await loadBudgetUse();
+  const [budget, res] = await Promise.all([loadBudgetUse(), costsOn() ? loadResults() : null]); cache.budget = budget;
   main.innerHTML = `<div class="head"><h1>Zákazky</h1><div class="bar">${V5() && P.some(p => p.active) ? `<button class="btn" data-act="qr-print">Tlačiť QR kódy</button>` : ""}<button class="btn accent" data-act="project-new">+ Nová zákazka</button></div></div>
-  <div class="tablewrap"><table><thead><tr><th>Zákazka</th><th>${office() ? "Kód" : "Poloha"}</th><th>Rozpočet</th><th></th></tr></thead>
+  <div class="tablewrap"><table><thead><tr><th>Zákazka</th><th>${office() ? "Kód" : "Poloha"}</th><th>Rozpočet</th>${res ? "<th>Výsledok</th>" : ""}<th></th></tr></thead>
   <tbody>${P.length ? P.map(p => { const u = budget[p.id] || 0, s = budgetState(p, u);
     return `<tr class="click" data-act="pdetail" data-id="${p.id}" style="${p.active ? "" : "opacity:.55"}">
     <td><b>${esc(p.name)}</b>${p.active ? "" : ` <span class="tag">ukončená</span>`}<br><span class="small muted">${esc(p.address || "")}${p.code && !office() ? ` · kód ${esc(p.code)}` : ""}</span></td>
     <td>${office() ? (p.code ? `<span class="tag">${esc(p.code)}</span>` : `<span class="muted small">–</span>`) : p.lat != null ? `<span class="tag go">na mape · ${p.radius || C.default_radius} m</span>` : `<span class="tag warn">bez polohy</span>`}</td>
     <td style="min-width:200px">${s ? `<div class="meter ${s.cls}"><i style="width:${Math.min(100, s.pct)}%"></i></div><span class="small ${s.cls === "over" ? "flag" : s.cls ? "warnc" : "muted"}">${eur(u)} z ${eur(p.budget)} · ${Math.round(s.pct)} %</span>` : `<span class="muted">–</span>`}</td>
+    ${res ? `<td>${resultCell(p, res[p.id])}</td>` : ""}
     <td class="r"><button class="btn sm" data-act="project" data-id="${p.id}">Upraviť</button></td></tr>`; }).join("")
-    : `<tr><td colspan="4" class="empty">Zatiaľ žiadne zákazky.</td></tr>`}</tbody></table></div>`;
+    : `<tr><td colspan="${res ? 5 : 4}" class="empty">Zatiaľ žiadne zákazky.</td></tr>`}</tbody></table></div>`;
 };
 let pMap = null, pMarker = null, pCircle = null;
 // QR štítky: obsah = kód zákazky (alebo DOCH:id, keď kód nemá) – appka pracovníka ho prečíta fotoaparátom
@@ -1217,6 +1243,7 @@ function openProject(id) {
     <div class="field"><label for="pRadius">Okruh (m)</label><input id="pRadius" type="number" min="50" max="5000" step="50" value="${p.radius ?? ""}" placeholder="${C.default_radius}"><span class="hint">V tomto okruhu appka zákazku vyberie sama</span></div>`}
     <div class="field"><label for="pBudget">Rozpočet na prácu €</label><input id="pBudget" type="number" min="0" step="1" value="${p.budget ?? ""}"><span class="hint">Upozorní pri ${C.budget_warn_pct} % a pri prekročení</span></div>
     <div class="field full"><label for="pNote">Poznámka</label><input id="pNote" value="${esc(p.note)}"></div>
+    ${financeFieldsHtml(id)}
     <label class="check full"><input type="checkbox" id="pActive" ${p.active ? "checked" : ""}><div><b>Aktívna</b><span>Ukončená zákazka sa pracovníkom v appke neponúka.</span></div></label>
   </form>`, `${id ? `<button class="btn danger" data-act="project-del" data-id="${id}">Zmazať</button>` : ""}${id && V5() ? `<button class="btn" data-act="qr-print" data-id="${id}">Tlačiť QR</button>` : ""}<span class="grow"></span><button class="btn" data-act="close">Zrušiť</button><button class="btn primary" data-act="project-save">Uložiť</button>`, true);
   pMap = null; if (off) return;
@@ -1254,6 +1281,7 @@ async function saveProject() {
     const saved = id ? await q(sb.from("projects").update(row).eq("id", id).select().single())
                      : await q(sb.from("projects").insert({...row, company_id: C.id}).select().single());
     P = P.filter(p => p.id !== saved.id).concat(saved).sort((a, b) => a.name.localeCompare(b.name, "sk"));
+    await saveFinance(saved.id, f);
     closeModal(); toast("Uložené"); go();
   } catch (e) { toast(errMsg(e), true); }
 }
@@ -1280,9 +1308,11 @@ RENDER.zakazka = async main => {
   const notes = today.filter(e => e.note);
   const monthName = new Date().toLocaleDateString("sk-SK", {month: "long"});
   const c = st ? (st.cls === "over" ? "var(--flag)" : st.cls ? "var(--warn)" : "var(--go)") : "var(--line)";
+  const resu = costsOn() ? await projectResultHtml(p, rows) : "";
   main.innerHTML = `
   <section class="hero"><a href="#prehlad" style="color:inherit;text-decoration:none;opacity:.8">‹ Kto je kde</a>
     <h1>${esc(p.name)}</h1><div class="sub">${esc(p.address || "")}${p.lat != null ? (p.address ? " · " : "") + "okruh " + (p.radius || C.default_radius) + " m" : ""}${p.active ? "" : " · ukončená"}</div></section>
+  ${resu}
   ${p.budget ? `<section class="card" style="border:2px solid ${c};display:flex;flex-direction:column;gap:10px">
     <div class="kv"><span class="muted small" style="text-transform:uppercase;letter-spacing:.08em">Rozpočet na prácu</span><b style="color:${c}">${Math.round(st.pct)} %</b></div>
     <div class="meter ${st.cls}" style="height:12px"><i style="width:${Math.min(100, st.pct)}%"></i></div>
@@ -1324,7 +1354,7 @@ RENDER.pokladna = async main => {
   const list = CASH.filter(c => (!cashFlt.worker || c.worker_id === cashFlt.worker) && (cashFlt.st === "all" || (cashFlt.st === "open") === cashOpen(c)))
     .sort((a, b) => rank(a) - rank(b) || ms(b.issued_at) - ms(a.issued_at));
   main.innerHTML = `
-  <div class="head"><h1>Pokladňa / doklady</h1><button class="btn accent" data-act="cash-give">Dať hotovosť</button><button class="btn" data-act="cash-xlsx">Export Excel</button></div>
+  <div class="head"><h1>Pokladňa / hotovosť</h1><button class="btn accent" data-act="cash-give">Dať hotovosť</button><button class="btn" data-act="cash-xlsx">Export Excel</button></div>
   <div class="stats">
     <div class="stat"><div class="l">Bez dokladu (u ľudí)</div><div class="v num ${cs.n ? "warnc" : ""}">${eur(cs.sum)}</div><div class="small muted">${cs.n} ${cs.n === 1 ? "položka" : cs.n < 5 && cs.n ? "položky" : "položiek"}</div></div>
     <div class="stat"><div class="l">Čaká na kontrolu</div><div class="v num ${rep.length ? "warnc" : ""}">${rep.length}</div></div>
@@ -1520,8 +1550,11 @@ RENDER.nastavenia = async main => {
     <div class="field"><label for="sPrivDpo">Zodpovedná osoba (DPO)</label><input id="sPrivDpo" value="${esc(pv.dpo || "")}" placeholder="nepovinné – meno a kontakt"></div>
     <div class="field full"><label for="sPrivUrl">Odkaz na celú informáciu o spracúvaní údajov</label><input id="sPrivUrl" type="url" value="${esc(C.privacy_url || "")}" placeholder="nepovinné – https://…"></div>`; })()}`
     : `<div class="full card flag">Chýbajú nastavenia ochrany údajov – v Supabase treba spustiť SQL súbor 0004_gdpr.sql.</div>`}
+    ${costSettingsHtml()}
     <div class="full"><button class="btn primary">Uložiť nastavenia</button></div>
   </form>
+  ${catCardHtml()}
+  ${await mfaCardHtml()}
   <div class="card"><h3>Appka pre pracovníkov</h3><p style="margin:6px 0">Adresa: <a href="${WORKER_APP}" target="_blank" rel="noopener">${WORKER_APP}</a>. Každý pracovník dostane vlastný odkaz v časti Pracovníci.</p></div>`;
 };
 async function saveSettings() {
@@ -1531,6 +1564,8 @@ async function saveSettings() {
     cash_overdue_days: +f.sCashDays.value || 3, cash_writeoff_limit: f.sCashLimit.value === "" ? 2 : +f.sCashLimit.value};
   if (f.sWork) Object.assign(row, {work_mode: f.sWork.value, round_step: +f.sRound.value, round_mode: f.sRoundMode.value,
     photos_enabled: f.sPhotos.checked, notes_enabled: f.sNotes.checked});
+  Object.assign(row, costSettingsRow(f));
+  const costsChanged = f.sCosts && f.sCosts.checked !== !!C.costs_enabled;
   const newFocus = f.sFocus && f.sFocus.value !== C.focus ? f.sFocus.value : null;
   if (newFocus) row.focus = newFocus;
   if (f.sGpsKeep) Object.assign(row, {gps_keep_days: +f.sGpsKeep.value || 90, photo_keep_days: +f.sPhotoKeep.value || 365,
@@ -1538,7 +1573,8 @@ async function saveSettings() {
       .map(([k, el]) => [k, el.value.trim()]).filter(([, v]) => v))), privacy_url: f.sPrivUrl.value.trim() || null});
   try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav();
     if (newFocus && confirm(`Nastaviť úlohy pre zameranie „${FOCUS[newFocus].name}“?\n\n${FOCUS[newFocus].tasks.map(([n, t]) => n + " " + t).join(", ")}\n\nOstatné úlohy sa prestanú ponúkať v appke (staré záznamy ich ponechajú, dajú sa znova zapnúť v časti Úlohy).`)) await applyFocusTasks(newFocus);
-    if (f.sPrivName || f.sWork || newFocus) go(); }
+    if (costsChanged) await afterCostSettings();
+    if (f.sPrivName || f.sWork || newFocus || costsChanged) go(); }
   catch (e) { toast(errMsg(e), true); }
 }
 // predvolený zoznam úloh podľa zamerania: chýbajúce pridá, existujúce premenuje, ostatné prestane ponúkať (nemaže – staré záznamy majú číslo)
@@ -1713,8 +1749,12 @@ async function start() {
   const {data} = await sb.auth.getSession();
   USER = data.session?.user || null;
   if (!USER || USER.is_anonymous) { USER = null; renderAuth(); return; }
+  // dvojstupňové overenie: kto ho má zapnuté, zadá po hesle ešte kód
+  const lvl = await mfaLevel();
+  if (lvl.next === "aal2" && lvl.cur !== "aal2") { renderMfaLogin(); return; }
   await loadBase();
   if (!C) { renderAuth(); return; }
+  if (C.mfa_required && lvl.cur !== "aal2") { await renderMfaForced(); return; }
   $("#auth").hidden = true; $("#shell").hidden = false;
   go(); retention();
 }

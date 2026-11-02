@@ -52,6 +52,19 @@ Kto už mal v mobile starú verziu appky, uvidí ukážkové dáta s nápisom �
 Nové zmeny pribudnú ako ďalšie súbory `supabase/migrations/0002_…sql`, `0003_…sql` a spúšťajú sa
 rovnako, v poradí čísel. Každý súbor sa dá spustiť aj opakovane.
 
+## Náklady zákaziek a dvojstupňové overenie (0007)
+
+Súbor `0007_naklady_zakaziek.sql` sa spustí rovnako ako ostatné. Pribudnú tabuľky `project_finance`,
+`cost_categories`, `cost_docs`, `cost_items` a v **Storage** priečinok `doklady`.
+
+Dvojstupňové overenie (TOTP, kód z aplikácie v mobile) má Supabase zapnuté v každom projekte.
+Ak by nefungovalo, skontroluj **Authentication** → **Multi-Factor** (v starších verziách *Auth* → *MFA*),
+že **TOTP (App Authenticator)** je povolené.
+
+Stratil správca mobil a iný správca nie je? V Supabase → **Authentication** → **Users** → otvor používateľa →
+v časti **Multi-factor** jeho zariadenie zmaž (alebo SQL: `delete from auth.mfa_factors where user_id = '…';`).
+Ak firma vyžaduje overenie od všetkých, pri ďalšom prihlásení si ho nastaví znova.
+
 ## Ochrana údajov (GDPR) v Supabase
 
 - **Región:** v Supabase → Project Settings → General skontroluj, že projekt beží v EÚ (napr. Frankfurt, `eu-central-1`).

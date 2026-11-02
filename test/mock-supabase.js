@@ -2,7 +2,8 @@
 // Dáta drží v localStorage ("mockdb"), takže admin aj appka pracovníka vidia to isté.
 // Bez RLS – bezpečnosť sa testuje osobitne v SQL (test/rls-test.sql).
 (function () {
-  const load = () => { const d = load0(); d.advances = d.advances || []; d.cash_items = d.cash_items || []; return d; };
+  const load = () => { const d = load0(); d.advances = d.advances || []; d.cash_items = d.cash_items || [];
+    ["project_finance", "cost_categories", "cost_docs", "cost_items", "mfa"].forEach(t => d[t] = d[t] || []); return d; };
   const load0 = () => JSON.parse(localStorage.getItem("mockdb") || "null") || {users: [], companies: [], company_admins: [], workers: [], projects: [], tasks: [], rates: [], entries: [], absences: [], advances: [], cash_items: [], files: {}};
   const store = db => localStorage.setItem("mockdb", JSON.stringify(db));
   const uuid = () => crypto.randomUUID();
@@ -11,7 +12,7 @@
   const AUTHKEY = "mockauth:" + (location.pathname.includes("/admin/") ? "admin" : "app");
   const session = () => JSON.parse(localStorage.getItem(AUTHKEY) || "null");
   const DEFAULTS = {
-    companies: () => ({id: uuid(), focus: "stavba", gps_enabled: false, breaks_enabled: false, default_radius: 500, default_rate: 0, forgot_checkout_hour: 18, max_shift_hours: 12, budget_warn_pct: 80, cash_writeoff_limit: 2, cash_overdue_days: 3, gps_keep_days: 90, photo_keep_days: 365, privacy_controller: null, privacy_url: null, round_step: 0, round_mode: "employee", work_mode: "field", photos_enabled: true, notes_enabled: true, created_at: now()}),
+    companies: () => ({id: uuid(), focus: "stavba", gps_enabled: false, breaks_enabled: false, default_radius: 500, default_rate: 0, forgot_checkout_hour: 18, max_shift_hours: 12, budget_warn_pct: 80, cash_writeoff_limit: 2, cash_overdue_days: 3, gps_keep_days: 90, photo_keep_days: 365, privacy_controller: null, privacy_url: null, round_step: 0, round_mode: "employee", work_mode: "field", photos_enabled: true, notes_enabled: true, costs_enabled: false, tpp_coef: 1.36, margin_warn_pct: 10, mfa_required: false, created_at: now()}),
     workers: () => ({id: uuid(), type: "TPP", role: null, default_task: null, hourly_rate: null, active: true, user_id: null, invite_code: code(), gps_consent: null, gps_consent_at: null, anonymized_at: null, phone: null, note: null, created_at: now()}),
     projects: () => ({id: uuid(), code: null, address: null, lat: null, lng: null, radius: null, budget: null, active: true, note: null, created_at: now()}),
     tasks: () => ({active: true}),
@@ -19,9 +20,13 @@
     entries: () => ({other_text: "", task_num: 0, note: "", photos: [], end_at: null, start_orig: null, end_orig: null, edited: false, gps_start: null, gps_end: null, breaks: [], by_admin: false, cont_in: false, cont_out: false, created_at: now(), updated_at: now()}),
     absences: () => ({id: uuid(), note: null, created_at: now()}),
     advances: () => ({id: uuid(), note: null, paid_on: now().slice(0, 10), created_at: now()}),
+    project_finance: () => ({customer: null, price: null, status: "bezi", due_on: null, updated_at: now()}),
+    cost_categories: () => ({id: uuid(), sort: 0, active: true, created_at: now()}),
+    cost_docs: () => ({id: uuid(), kind: "faktura", supplier: null, doc_no: null, issued_on: now().slice(0, 10), vat: null, files: [], note: null, created_by: uid(), created_at: now()}),
+    cost_items: () => ({id: uuid(), project_id: null, category_id: null, note: null, created_at: now()}),
     cash_items: () => ({id: uuid(), kind: "issued", given: 0, purpose: "", issued_at: now(), spent: null, photos: [], worker_note: null, reported_at: null, status: "open", admin_note: null, settle_mode: null, settled_at: null, created_at: now()})
   };
-  const KEYS = {tasks: ["company_id", "num"]};
+  const KEYS = {tasks: ["company_id", "num"], project_finance: ["project_id"]};
   const keyOf = (t, r) => (KEYS[t] || ["id"]).map(k => r[k]).join("|");
   const ok = data => Promise.resolve({data, error: null});
   const fail = message => Promise.resolve({data: null, error: {message}});
@@ -30,6 +35,7 @@
     constructor(t) { this.t = t; this.f = []; this.op = "select"; this.ret = false; this.one = 0; this.ord = []; this.rng = null; }
     select() { if (this.op !== "select") this.ret = true; return this; }
     eq(k, v) { this.f.push(r => r[k] === v); return this; }
+    not(k, op, v) { this.f.push(r => op === "is" ? !(r[k] === v || (v === null && r[k] == null)) : r[k] !== v); return this; }
     neq(k, v) { this.f.push(r => r[k] !== v); return this; }
     in(k, a) { this.f.push(r => a.includes(r[k])); return this; }
     is(k, v) { this.f.push(r => r[k] === v || (v === null && r[k] == null)); return this; }
@@ -91,7 +97,27 @@
     },
     async signInAnonymously() { const u = {id: uuid(), is_anonymous: true}; setSession(u); return {data: {user: u, session: session()}, error: null}; },
     async signOut() { setSession(null); return {error: null}; },
-    async resetPasswordForEmail() { return {data: {}, error: null}; }
+    async resetPasswordForEmail() { return {data: {}, error: null}; },
+    async refreshSession() { return {data: {session: session()}, error: null}; },
+    // dvojstupňové overenie: platný kód je vždy 123456
+    mfa: {
+      async getAuthenticatorAssuranceLevel() {
+        const s = session(); if (!s) return {data: null, error: null};
+        const has = load().mfa.some(f => f.user_id === s.user.id && f.status === "verified");
+        return {data: {currentLevel: s.aal || "aal1", nextLevel: has ? "aal2" : (s.aal || "aal1")}, error: null};
+      },
+      async listFactors() { const l = load().mfa.filter(f => f.user_id === uid()); return {data: {all: l, totp: l.filter(f => f.status === "verified")}, error: null}; },
+      async enroll({friendlyName}) {
+        const db = load(); const f = {id: uuid(), user_id: uid(), status: "unverified", factor_type: "totp", friendly_name: friendlyName}; db.mfa.push(f); store(db);
+        return {data: {id: f.id, type: "totp", totp: {qr_code: PIXEL, secret: "JBSWY3DPEHPK3PXP", uri: "otpauth://totp/Dochadzka"}}, error: null};
+      },
+      async challengeAndVerify({factorId, code}) {
+        if (code !== "123456") return {data: null, error: {message: "Invalid TOTP code entered"}};
+        const db = load(); const f = db.mfa.find(x => x.id === factorId); if (!f) return {data: null, error: {message: "Factor not found"}};
+        f.status = "verified"; store(db); const s = session(); s.aal = "aal2"; localStorage.setItem(AUTHKEY, JSON.stringify(s)); return {data: {}, error: null};
+      },
+      async unenroll({factorId}) { const db = load(); db.mfa = db.mfa.filter(f => f.id !== factorId); store(db); return {data: {id: factorId}, error: null}; }
+    }
   };
   const uid = () => session()?.user?.id;
   function mockSummary(db, c, e, g) {
