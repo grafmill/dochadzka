@@ -237,7 +237,32 @@ details.card summary{font-weight:600;cursor:pointer}
 .qrlabel{display:inline-flex;flex-direction:column;align-items:center;gap:4px;width:62mm;margin:3mm;padding:4mm;border:1px dashed #999;break-inside:avoid;text-align:center;color:#000;vertical-align:top}
 .qrlabel svg{width:44mm;height:44mm}
 .qrlabel b{font-size:14px} .qrlabel span{font:600 16px monospace;letter-spacing:.05em} .qrlabel small{font-size:9px;color:#555}
+/* mesačný výkaz jedného pracovníka – A4 na výšku, vždy jedna strana */
+.wmwrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line);background:#fff}
+.wm{width:190mm;margin:0 auto;padding:0;color:#000;background:#fff;font:10.5px/1.25 var(--body)}
+.wmwrap .wm{padding:10mm;width:210mm}
+.wm h2{font:700 17px/1.1 var(--display);margin:0}
+.wm .wmhead{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;border-bottom:.5mm solid #000;padding-bottom:2mm;margin-bottom:2mm}
+.wm .wmhead .sub{color:#444;margin-top:1mm}
+.wm table{width:100%;border-collapse:collapse;table-layout:fixed}
+.wm th,.wm td{padding:.9mm 1.4mm;border:0;border-bottom:.2mm solid #d4d4d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;vertical-align:top;background:none;color:#000;font-size:inherit}
+.wm th{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#555;border-bottom:.3mm solid #000;font-weight:600}
+.wm .r{text-align:right} .wm .num{font-variant-numeric:tabular-nums}
+.wm tr.we td{color:#555} .wm tr.abs td{background:#f2f2f2} .wm .fl{color:#c00;font-weight:700}
+.wm tfoot td{border-top:.3mm solid #000;border-bottom:0;font-weight:700}
+.wm .wmsum{display:grid;grid-template-columns:1.25fr 1.1fr 1fr;gap:5mm;margin-top:4mm}
+.wm .wmsum h4{margin:0 0 1mm;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#555}
+.wm .kv2{display:flex;justify-content:space-between;gap:3mm;padding:.5mm 0;border-bottom:.2mm solid #e2e2e2}
+.wm .kv2 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0} .wm .kv2 b{white-space:nowrap}
+.wm .kv2.tot{border-top:.3mm solid #000;border-bottom:0;font-weight:700;margin-top:.5mm}
+.wm .wmsign{display:flex;gap:12mm;margin-top:9mm} .wm .wmsign div{flex:1;border-top:.2mm solid #000;padding-top:1mm;color:#444;font-size:9px}
+.wm .wmnote{color:#555;font-size:9px;margin-top:2mm}
+.wmroot{display:none}
+@page wm{size:A4 portrait;margin:10mm}
 @media print{
+  .wmroot .wm{page:wm;break-inside:avoid}
+  body.wmprint>*:not(#wmRoot){display:none!important}
+  body.wmprint .wmroot{display:block}
   body.qrprint>*:not(#qrRoot){display:none!important}
   body.qrprint .qrroot{display:block}
   nav,.tabbar,.noprint,.btn,.bar{display:none!important}
@@ -252,6 +277,7 @@ details.card summary{font-weight:600;cursor:pointer}
 </head>
 <body>
 <div id="qrRoot" class="qrroot"></div>
+<div id="wmRoot" class="wmroot"></div>
 <div id="auth" class="auth" hidden></div>
 <div id="shell" class="shell" hidden>
   <nav id="nav"></nav>
@@ -286,6 +312,20 @@ const eur = n => new Intl.NumberFormat("sk-SK", {style:"currency", currency:"EUR
 const dateKey = v => { const d = new Date(ms(v)); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
 const timeVal = v => { const d = new Date(ms(v)); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
 const KIND = {dovolenka:"Dovolenka", PN:"PN", volno:"Voľno"};
+// zameranie firmy → predvolený zoznam úloh a návrhy zaradenia pracovníka (zaradenie → predvolená úloha)
+const FOCUS = {
+  stavba: {name: "Stavebná firma", tasks: [[0, "Nezaradené"], [1, "Príprava pracoviska"], [2, "Doprava materiálu"], [3, "Upratovanie"], [4, "Lešenie"],
+    [5, "Búranie"], [6, "Penetrácia"], [7, "Maľovanie"], [8, "Montáž SDK"], [9, "Murovanie"], [10, "Omietky"], [11, "Obklady a dlažby"], [12, "Elektroinštalácia"],
+    [13, "Vodoinštalácia"], [14, "Podlahy"], [15, "Zatepľovanie"], [16, "Okná a dvere"], [17, "Stierky"], [20, "Strecha"], [30, "Výkopové práce"],
+    [40, "Betonáž"], [41, "Armovanie"], [50, "Nákup materiálu"], [99, "Oprava reklamácie"]],
+    roles: {"Murár": 9, "Maliar": 7, "Sadrokartonista": 8, "Obkladač": 11, "Elektrikár": 12, "Inštalatér": 13, "Pomocník": 1}},
+  kovo: {name: "Kovovýroba / zámočnícka dielňa", tasks: [[0, "Nezaradené"], [1, "Dielňa – výroba"], [2, "Montáž u zákazníka"], [3, "Nákup"],
+    [4, "Zásobovanie / doprava"], [5, "Údržba strojov"], [6, "Upratovanie"], [9, "Reklamácia"]],
+    roles: {"Zvárač": 1, "Zámočník": 1, "Montážnik": 2, "Zásobovač / vodič": 4, "Pomocník": 1}},
+  vseob: {name: "Všeobecná (iné zameranie)", tasks: [[0, "Nezaradené"], [1, "Práca vo firme"], [2, "Práca u zákazníka"], [3, "Nákup"],
+    [4, "Doprava"], [5, "Administratíva"], [6, "Upratovanie"], [9, "Reklamácia"]],
+    roles: {}}
+};
 
 function toast(t, err) {
   const el = $("#toast"); el.textContent = t; el.className = "toast" + (err ? " err" : ""); el.hidden = false;
@@ -521,7 +561,7 @@ const VIEWS = [
 ];
 const HIDDEN_VIEWS = ["zakazka"];
 const RENDER = {};
-let view = "prehlad", viewArg = {}, flt = {month: curMonth(), worker: "", project: "", edited: false}, repTab = "workers";
+let view = "prehlad", viewArg = {}, flt = {month: curMonth(), worker: "", project: "", edited: false}, repTab = "workers", repWorker = "", repMoney = true;
 let cache = {entries: [], range: null, budget: {}};
 const ICON = {
   prehlad: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>`,
@@ -720,6 +760,7 @@ async function openWorkerSheet(wid) {
       <button class="btn" data-act="adv-new" data-id="${wid}">+ Záloha</button>
       <button class="btn" data-act="invite" data-id="${wid}">Odkaz do mobilu</button>
       <button class="btn" data-act="worker" data-id="${wid}">Karta pracovníka</button>
+      <button class="btn" data-act="wreport" data-id="${wid}">Mesačný výkaz</button>
       <a class="btn" href="#dochadzka" data-act="flt-worker" data-id="${wid}">Záznamy</a>
       ${tel ? `<a class="btn" href="tel:${tel}">Zavolať</a>` : ""}
     </div>`);
@@ -852,6 +893,88 @@ function reportData(all, pay = {}) {
     .sort((a, b) => b.s.cost - a.s.cost);
   return {workers, projects};
 }
+// ---- mesačný výkaz jedného pracovníka: jeden riadok na deň, aby sa 20+ pracovných dní vošlo na 1 stranu A4
+function workerMonth(wid, all, pay) {
+  const w = worker(wid), items = all.filter(e => e.worker_id === wid).sort((a, b) => ms(a.start_at) - ms(b.start_at));
+  const [a, b] = monthRange(flt.month), byDay = new Map();
+  items.forEach(e => { const k = dateKey(e.start_at); byDay.set(k, (byDay.get(k) || []).concat(e)); });
+  const absOn = k => w.type === "TPP" && A.find(x => x.worker_id === wid && x.date_from <= k && x.date_to >= k);
+  const segTxt = e => { const pn = e.project_id || e.other_text ? projName(e) : ""; return [pn, e.task_num || !pn ? taskName(e.task_num) : ""].filter(Boolean).join(" · "); };
+  const days = [];
+  for (let d = new Date(a); d.getTime() < b; d.setDate(d.getDate() + 1)) {
+    const k = dateKey(d), es = byDay.get(k) || [], ab = absOn(k), we = !(d.getDay() % 6);
+    if (!es.length && !(ab && !we)) continue;
+    const groups = [];   // po sebe idúce úseky s rovnakou zákazkou aj úlohou spojiť
+    es.forEach(e => { const t = segTxt(e), g = groups[groups.length - 1]; if (g && g.t === t) g.ms += workedMs(e); else groups.push({t, ms: workedMs(e)}); });
+    const open = es.some(e => !e.end_at);
+    days.push({k, date: new Date(d), we, abs: !es.length && ab ? KIND[ab.kind] : "", absToo: es.length && ab && !we ? KIND[ab.kind] : "",
+      start: es.length ? Math.min(...es.map(effStart)) : null, end: es.length && !open ? Math.max(...es.map(effEnd)) : null, open,
+      ms: es.reduce((x, e) => x + workedMs(e), 0), cost: es.reduce((x, e) => x + costOf(e), 0), edited: es.some(e => e.edited),
+      desc: groups.length > 1 ? groups.map(g => g.t + " " + hhmm(g.ms)).join(", ") : groups[0]?.t || ""});
+  }
+  const top = m => { const l = [...m.entries()].map(([k, o]) => ({k, ...o})).sort((x, y) => y.ms - x.ms); return l.length > 7 ? l.slice(0, 6).concat({k: "_more", n: l.length - 6, ms: l.slice(6).reduce((x, o) => x + o.ms, 0), cost: l.slice(6).reduce((x, o) => x + o.cost, 0)}) : l; };
+  return {w, items, days, perP: top(summarize(items, e => e.project_id || "ine")), perT: top(summarize(items, e => e.task_num)),
+    ms: items.reduce((x, e) => x + workedMs(e), 0), cost: items.reduce((x, e) => x + costOf(e), 0), nDays: new Set(items.map(e => dateKey(e.start_at))).size,
+    abs: w.type === "TPP" ? absenceDays(wid, flt.month) : null, pay: pay[wid] || {labor: 0, adv: 0, cash: 0, carry: 0, pay: 0}};
+}
+function workerMonthHtml(d, money) {
+  const monthTxt = new Date(monthRange(flt.month)[0]).toLocaleDateString("sk-SK", {month: "long", year: "numeric"});
+  const wd = t => t.toLocaleDateString("sk-SK", {weekday: "short"}) + " " + t.getDate() + "." + (t.getMonth() + 1) + ".";
+  const rate = d.w.hourly_rate != null ? +d.w.hourly_rate : +C.default_rate;
+  const kv = (l, v, cls = "") => `<div class="kv2 ${cls}"><span>${esc(l)}</span><b class="num">${v}</b></div>`;
+  const pName = k => k === "ine" ? "Iné" : project(k)?.name || "?";
+  const list = (arr, name) => arr.length ? arr.map(o => kv(o.k === "_more" ? `ďalšie (${o.n})` : name(o.k), hhmm(o.ms) + " h" + (money ? " · " + eur(o.cost) : ""))).join("") : `<div class="kv2"><span>–</span></div>`;
+  const absTxt = d.abs ? Object.entries(d.abs).filter(([, n]) => n).map(([k, n]) => `${KIND[k]} ${n} d`).join(", ") : "";
+  const o = d.pay;
+  return `<div class="wm">
+    <div class="wmhead"><div><h2>Výkaz práce – ${esc(d.w.name)}</h2>
+      <div class="sub">${esc(C.name)} · ${d.w.type === "TPP" ? "TPP" : "živnostník"}${d.w.role ? " · " + esc(d.w.role) : ""}${money ? " · sadzba " + eur(rate) + "/h" : ""}</div></div>
+      <div style="text-align:right"><h2>${monthTxt}</h2><div class="sub">vytlačené ${dFull(Date.now())}</div></div></div>
+    <table><colgroup><col style="width:17mm"><col style="width:14mm"><col style="width:14mm"><col><col style="width:14mm">${money ? `<col style="width:19mm">` : ""}<col style="width:5mm"></colgroup>
+      <thead><tr><th>Dátum</th><th class="r">Príchod</th><th class="r">Odchod</th><th>Zákazka / úloha</th><th class="r">Hodiny</th>${money ? `<th class="r">Cena</th>` : ""}<th></th></tr></thead>
+      <tbody>${d.days.length ? d.days.map(x => x.abs
+        ? `<tr class="abs"><td>${wd(x.date)}</td><td></td><td></td><td>${x.abs}</td><td></td>${money ? "<td></td>" : ""}<td></td></tr>`
+        : `<tr class="${x.we ? "we" : ""}"><td>${wd(x.date)}</td><td class="r num">${hm(x.start)}</td><td class="r num">${x.open ? "v práci" : hm(x.end)}</td>
+          <td title="${esc(x.desc)}">${esc(x.desc)}${x.absToo ? ` <i>(${x.absToo})</i>` : ""}</td><td class="r num"><b>${hhmm(x.ms)}</b></td>${money ? `<td class="r num">${eur(x.cost)}</td>` : ""}<td class="fl">${x.edited ? "!" : ""}</td></tr>`).join("")
+        : `<tr><td colspan="${money ? 7 : 6}">Žiadne záznamy.</td></tr>`}</tbody>
+      <tfoot><tr><td colspan="4">Spolu ${d.nDays} ${d.nDays === 1 ? "deň" : d.nDays > 1 && d.nDays < 5 ? "dni" : "dní"}</td><td class="r num">${hhmm(d.ms)}</td>${money ? `<td class="r num">${eur(d.cost)}</td>` : ""}<td></td></tr></tfoot></table>
+    <div class="wmsum">
+      <div><h4>Podľa zákaziek</h4>${list(d.perP, pName)}</div>
+      <div><h4>Podľa úloh</h4>${list(d.perT, n => n + " · " + taskName(n))}</div>
+      <div><h4>${money ? "Vyúčtovanie" : "Spolu"}</h4>
+        ${kv("Odpracované dni", d.nDays)}${kv("Odpracované hodiny", hhmm(d.ms) + " h")}${absTxt ? kv("Neprítomnosť", absTxt) : ""}
+        ${money ? kv("Cena práce", eur(o.labor)) + (o.adv ? kv("Zálohy", "− " + eur(o.adv)) : "") + (o.cash ? kv("Hotovosť / nákupy", (o.cash > 0 ? "+ " : "− ") + eur(Math.abs(o.cash))) : "")
+          + (o.carry ? kv("Mínus z minulého mesiaca", "− " + eur(-o.carry)) : "") + kv(o.pay >= 0 ? "Doplatiť" : "V mínuse", eur(o.pay), "tot") : ""}</div></div>
+    <div class="wmnote">${d.days.some(x => x.edited) ? `<b class="fl">!</b> = čas upravil pracovník. ` : ""}${C.round_step ? `Časy sú zaokrúhlené na ${C.round_step} min. ` : ""}${C.breaks_enabled ? "Hodiny sú bez prestávok. " : ""}</div>
+    <div class="wmsign"><div>Podpis pracovníka</div><div>Podpis za zamestnávateľa</div></div></div>`;
+}
+// tlač na jednu stranu A4: ak by obsah pretiekol, zmenší sa (zoom) podľa náhľadu
+function printWorkerMonth() {
+  const prev = $("#wmPreview .wm"); if (!prev) return;
+  const root = $("#wmRoot"); root.innerHTML = prev.outerHTML;
+  const mm = 96 / 25.4, page = 277 * mm, h = prev.scrollHeight - 20 * mm;   // náhľad má okraje 10 mm, obsah má rovnakú šírku 190 mm ako tlač
+  root.firstElementChild.style.zoom = h > page ? (page / h * 0.98).toFixed(3) : "";
+  document.body.classList.add("wmprint");
+  const done = () => { document.body.classList.remove("wmprint"); root.innerHTML = ""; window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  setTimeout(() => window.print(), 50);
+}
+async function exportWorkerMonth() {
+  const d = workerMonth(repWorker, cache.entries, await payroll(flt.month)), money = repMoney;
+  const wb = XLSX.utils.book_new(), o = d.pay;
+  const s1 = [["Výkaz práce", d.w.name, flt.month], [],
+    ["Dátum", "Deň", "Príchod", "Odchod", "Zákazka / úloha", "Hodiny", ...(money ? ["Cena práce €"] : []), "Upravené"],
+    ...d.days.map(x => [dFull(x.date), x.date.toLocaleDateString("sk-SK", {weekday: "short"}), x.abs ? "" : hm(x.start), x.abs ? "" : x.open ? "v práci" : hm(x.end),
+      x.abs || x.desc + (x.absToo ? " (" + x.absToo + ")" : ""), x.abs ? "" : hoursDec(x.ms), ...(money ? [x.abs ? "" : r2(x.cost)] : []), x.edited ? "ÁNO" : ""]),
+    ["SPOLU", d.nDays + " dní", "", "", "", hoursDec(d.ms), ...(money ? [r2(d.cost)] : []), ""], [],
+    ...(d.abs ? Object.entries(d.abs).filter(([, n]) => n).map(([k, n]) => [KIND[k] + " (prac. dni)", n]) : []),
+    ...(money ? [["Cena práce €", o.labor], ["Zálohy €", -o.adv], ["Hotovosť / nákupy €", o.cash], ["Mínus z minulého mesiaca €", o.carry], [o.pay >= 0 ? "Doplatiť €" : "V mínuse €", o.pay]] : [])];
+  const s2 = [["Dátum", "Príchod", "Odchod", "Zákazka", "Úloha č.", "Úloha", "Poznámka", "Hodiny", ...(money ? ["Sadzba €/h", "Cena €"] : []), "Upravené", "Pôvodný príchod", "Pôvodný odchod"],
+    ...d.items.map(e => [dFull(e.start_at), hm(effStart(e)), e.end_at ? hm(effEnd(e)) : "v práci", projName(e), e.task_num, taskName(e.task_num), e.note, hoursDec(workedMs(e)),
+      ...(money ? [rateFor(e), r2(costOf(e))] : []), e.edited ? "ÁNO" : "", e.start_orig ? hm(e.start_orig) : "", e.end_orig ? hm(e.end_orig) : ""])];
+  [[s1, "Výkaz"], [s2, "Záznamy"]].forEach(([x, n]) => { const ws = XLSX.utils.aoa_to_sheet(x); ws["!cols"] = x[2 % x.length].map((_, i) => ({wch: i === 4 || i === 3 ? 34 : 13})); XLSX.utils.book_append_sheet(wb, ws, n); });
+  XLSX.writeFile(wb, `vykaz-${d.w.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-")}-${flt.month}${money ? "" : "-hodiny"}.xlsx`);
+}
 RENDER.vykazy = async main => {
   const all = await monthEntries(); const budget = cache.budget = await loadBudgetUse(); await loadMoney();
   const pay = await payroll(flt.month);
@@ -861,16 +984,29 @@ RENDER.vykazy = async main => {
   const payCell = v => `<b class="num ${v >= 0 ? "pos" : "neg"}">${v >= 0 ? eur(v) : "mínus " + eur(-v)}</b>`;
   const monthTxt = new Date(monthRange(flt.month)[0]).toLocaleDateString("sk-SK", {month: "long", year: "numeric"});
   const tot = all.reduce((a, e) => a + workedMs(e), 0), totC = all.reduce((a, e) => a + costOf(e), 0);
+  const tabs = `<div class="tabs" style="min-width:330px"><button class="${repTab === "workers" ? "on" : ""}" data-act="rep-tab" data-t="workers">Na pracovníka</button><button class="${repTab === "projects" ? "on" : ""}" data-act="rep-tab" data-t="projects">Na zákazku</button><button class="${repTab === "worker" ? "on" : ""}" data-act="rep-tab" data-t="worker">Jeden pracovník</button></div>`;
+  if (repTab === "worker") {
+    const list = workers.map(x => x.w);
+    if (!list.some(w => w.id === repWorker)) repWorker = list[0]?.id || "";
+    main.innerHTML = `<div class="head"><h1>Výkazy</h1>
+      ${repWorker ? `<button class="btn" data-act="wm-xlsx">Export Excel</button><button class="btn accent" data-act="wm-pdf">Tlačiť / PDF</button>` : ""}</div>
+    <div class="bar"><input type="month" id="fMonth" value="${flt.month}" aria-label="Mesiac">${tabs}</div>
+    <div class="bar"><select id="fRepWorker" aria-label="Pracovník">${list.map(w => `<option value="${w.id}" ${w.id === repWorker ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select>
+      <label class="tag" style="padding:6px 10px;cursor:pointer"><input type="checkbox" id="fRepMoney" ${repMoney ? "checked" : ""}> so sadzbou a výplatou</label>
+      <span class="muted small">Bez zaškrtnutia len hodiny – verzia pre pracovníka. Výkaz sa vždy vytlačí na jednu stranu A4.</span></div>
+    ${repWorker ? `<div class="wmwrap" id="wmPreview">${workerMonthHtml(workerMonth(repWorker, all, pay), repMoney)}</div>` : `<div class="card empty">Žiadni pracovníci.</div>`}`;
+    return;
+  }
   main.innerHTML = `
   <div class="print-only"><h1>${esc(C.name)} – výkaz ${monthTxt}</h1></div>
   <div class="head noprint"><h1>Výkazy</h1>
     <button class="btn" data-act="xlsx">Export Excel</button><button class="btn" data-act="pdf">Export PDF</button></div>
   <div class="bar"><input type="month" id="fMonth" value="${flt.month}" aria-label="Mesiac">
-    <div class="tabs" style="min-width:300px"><button class="${repTab === "workers" ? "on" : ""}" data-act="rep-tab" data-t="workers">Na pracovníka</button><button class="${repTab === "projects" ? "on" : ""}" data-act="rep-tab" data-t="projects">Na zákazku</button></div></div>
+    ${tabs}</div>
   <div class="stats"><div class="stat"><div class="l">${monthTxt}</div><div class="v num">${hhmm(tot)} h</div></div><div class="stat"><div class="l">Cena práce</div><div class="v num">${eur(totC)}</div></div></div>
   ${repTab === "workers" ? `<div class="tablewrap"><table>
     <thead><tr><th>Pracovník</th><th>Typ</th><th class="r">Dni</th><th class="r">Hodiny</th><th class="r">Cena práce</th><th class="r">Zálohy</th><th class="r">Hotovosť</th><th class="r">Prenos</th><th class="r">Doplatiť</th><th class="r">Bez dokladu</th><th class="r">Dovolenka</th><th class="r">PN</th><th class="r">Voľno</th><th class="r">Upravené</th></tr></thead>
-    <tbody>${workers.map(({w, s, abs, perP, pay: o, owed}) => `<tr><td><a href="#" data-act="wsheet" data-id="${w.id}" style="color:inherit"><b>${esc(w.name)}</b></a></td><td>${w.type === "TPP" ? "TPP" : "živnostník"}</td><td class="r num">${s.days.size}</td><td class="r num">${hhmm(s.ms)}</td><td class="r num"><b>${eur(o.labor)}</b></td>
+    <tbody>${workers.map(({w, s, abs, perP, pay: o, owed}) => `<tr><td><a href="#" data-act="wreport" data-id="${w.id}" style="color:inherit" title="Mesačný výkaz pracovníka"><b>${esc(w.name)}</b></a></td><td>${w.type === "TPP" ? "TPP" : "živnostník"}</td><td class="r num">${s.days.size}</td><td class="r num">${hhmm(s.ms)}</td><td class="r num"><b>${eur(o.labor)}</b></td>
       <td class="r num">${o.adv ? "− " + eur(o.adv) : ""}</td><td class="r num">${sgn(o.cash)}</td><td class="r num neg">${o.carry ? "− " + eur(-o.carry) : ""}</td><td class="r">${payCell(o.pay)}</td>
       <td class="r num">${owed.n ? `<span class="${owed.late ? "neg" : "warnc"}">${eur(owed.sum)}</span> <button class="btn sm noprint" data-act="cash-deduct-w" data-id="${w.id}">Odrátať</button>` : ""}</td>
       <td class="r num">${abs ? abs.dovolenka || "" : "–"}</td><td class="r num">${abs ? abs.PN || "" : "–"}</td><td class="r num">${abs ? abs.volno || "" : "–"}</td><td class="r num ${s.edited ? "flag" : ""}">${s.edited ? "! " + s.edited : ""}</td></tr>
@@ -943,7 +1079,7 @@ RENDER.pracovnici = async main => {
   ${nInactive ? `<div class="bar"><label class="tag" style="padding:6px 10px;cursor:pointer"><input type="checkbox" id="fInactive" ${showInactive ? "checked" : ""}> zobraziť neaktívnych (${nInactive})</label></div>` : ""}
   <div class="tablewrap"><table><thead><tr><th>Meno</th><th>Typ</th><th class="r">Sadzba</th><th>Mobil</th><th>Poloha</th><th></th></tr></thead>
   <tbody>${list.length ? list.map(w => `<tr class="click" data-act="worker" data-id="${w.id}" style="${w.active ? "" : "opacity:.55"}">
-    <td><b>${esc(w.name)}</b>${w.active ? "" : ` <span class="tag">neaktívny</span>`}${w.phone ? `<br><span class="small muted">${esc(w.phone)}</span>` : ""}</td>
+    <td><b>${esc(w.name)}</b>${w.active ? "" : ` <span class="tag">neaktívny</span>`}${w.role || w.default_task != null ? `<br><span class="small">${esc([w.role, w.default_task != null ? w.default_task + " · " + taskName(w.default_task) : ""].filter(Boolean).join(" → "))}</span>` : ""}${w.phone ? `<br><span class="small muted">${esc(w.phone)}</span>` : ""}</td>
     <td>${w.type === "TPP" ? "TPP" : "živnostník"}</td>
     <td class="r num">${w.hourly_rate != null ? eur(w.hourly_rate) : `<span class="muted">${eur(C.default_rate)}</span>`}</td>
     <td>${w.user_id ? `<span class="tag go">prihlásený</span>` : `<span class="tag warn">čaká na prihlásenie</span>`}</td>
@@ -958,6 +1094,11 @@ function openWorker(id) {
     <div class="field"><label for="wName">Meno a priezvisko</label><input id="wName" required value="${esc(w.name)}"></div>
     <div class="field"><label for="wPhone">Telefón</label><input id="wPhone" type="tel" value="${esc(w.phone)}"><span class="hint">Na poslanie odkazu cez SMS / WhatsApp</span></div>
     <div class="field"><label for="wType">Typ</label><select id="wType"><option value="TPP" ${w.type === "TPP" ? "selected" : ""}>TPP (zamestnanec)</option><option value="SZCO" ${w.type === "SZCO" ? "selected" : ""}>Živnostník</option></select></div>
+    ${"focus" in C ? (() => { const roles = FOCUS[C.focus]?.roles || {};
+      return `<div class="field"><label for="wRole">Zaradenie</label><input id="wRole" list="wRoles" value="${esc(w.role || "")}" placeholder="napr. ${esc(Object.keys(roles)[0] || "Zvárač")}" maxlength="40">
+      <datalist id="wRoles">${Object.keys(roles).map(r => `<option value="${esc(r)}">`).join("")}</datalist></div>
+    <div class="field"><label for="wTask">Predvolená úloha</label><select id="wTask"><option value="">naposledy použitá</option>${T.filter(t => t.active || t.num === w.default_task).map(t => `<option value="${t.num}" ${t.num === w.default_task ? "selected" : ""}>${t.num} · ${esc(t.name)}</option>`).join("")}</select>
+      <span class="hint">Nastaví sa mu pri prvom Príchode dňa, zmeniť si ju vie jedným ťuknutím</span></div>`; })() : ""}
     <div class="field"><label for="wRate">Hodinová sadzba €</label><input id="wRate" type="number" step="0.01" min="0" value="${w.hourly_rate ?? ""}" placeholder="${C.default_rate} (základná firmy)"></div>
     <div class="field full"><label for="wNote">Poznámka</label><input id="wNote" value="${esc(w.note)}"></div>
     <label class="check full"><input type="checkbox" id="wActive" ${w.active ? "checked" : ""}><div><b>Aktívny</b><span>Neaktívny pracovník sa nevie prihlásiť, jeho záznamy ostávajú.</span></div></label>
@@ -990,6 +1131,7 @@ async function saveWorker() {
   }
   const row = {name: f.wName.value.trim(), phone: f.wPhone.value.trim() || null, type: f.wType.value,
     hourly_rate: f.wRate.value === "" ? null : +f.wRate.value, active: f.wActive.checked, note: f.wNote.value.trim() || null};
+  if (f.wRole) Object.assign(row, {role: f.wRole.value.trim() || null, default_task: f.wTask.value === "" ? null : +f.wTask.value});
   try {
     let saved;
     if (id) saved = await q(sb.from("workers").update(row).eq("id", id).select().single());
@@ -1335,6 +1477,9 @@ RENDER.nastavenia = async main => {
   main.innerHTML = `<div class="head"><h1>Nastavenia</h1></div>
   <form class="card form" data-form="settings">
     <div class="field full"><label for="sName">Názov firmy</label><input id="sName" required value="${esc(C.name)}"></div>
+    ${"focus" in C ? `<div class="field full"><label for="sFocus">Zameranie firmy</label><select id="sFocus">${Object.entries(FOCUS).map(([k, f]) => `<option value="${k}" ${C.focus === k ? "selected" : ""}>${f.name}</option>`).join("")}</select>
+      <span class="hint">Podľa zamerania sa nastaví zoznam úloh (dá sa potom upraviť v časti Úlohy) a návrhy zaradenia pracovníkov.</span></div>`
+    : `<div class="field full card flag">Zameranie firmy a zaradenie pracovníkov: v Supabase treba spustiť SQL súbor 0006_zameranie_zaradenie.sql.</div>`}
     <div class="full">
       <label class="check"><input type="checkbox" id="sGps" ${C.gps_enabled && !office() ? "checked" : ""} ${office() ? "disabled" : ""}><div><b>Zaznamenávať polohu (GPS)</b><span>Poloha sa uloží len v okamihu Príchodu a appka podľa nej sama vyberie zákazku. Pri Odchode ani počas dňa sa nezisťuje. Každý pracovník musí v appke súhlasiť; bez súhlasu sa záznamy ukladajú bez polohy.</span></div></label>
       <label class="check"><input type="checkbox" id="sBreaks" ${C.breaks_enabled ? "checked" : ""}><div><b>Prestávky / obed</b><span>V appke sa objaví tlačidlo Prestávka. Čas prestávky sa neráta do odpracovaných hodín.</span></div></label>
@@ -1386,11 +1531,23 @@ async function saveSettings() {
     cash_overdue_days: +f.sCashDays.value || 3, cash_writeoff_limit: f.sCashLimit.value === "" ? 2 : +f.sCashLimit.value};
   if (f.sWork) Object.assign(row, {work_mode: f.sWork.value, round_step: +f.sRound.value, round_mode: f.sRoundMode.value,
     photos_enabled: f.sPhotos.checked, notes_enabled: f.sNotes.checked});
+  const newFocus = f.sFocus && f.sFocus.value !== C.focus ? f.sFocus.value : null;
+  if (newFocus) row.focus = newFocus;
   if (f.sGpsKeep) Object.assign(row, {gps_keep_days: +f.sGpsKeep.value || 90, photo_keep_days: +f.sPhotoKeep.value || 365,
     privacy_controller: JSON.stringify(Object.fromEntries([["name", f.sPrivName], ["address", f.sPrivAddr], ["ico", f.sPrivIco], ["contact", f.sPrivContact], ["dpo", f.sPrivDpo]]
       .map(([k, el]) => [k, el.value.trim()]).filter(([, v]) => v))), privacy_url: f.sPrivUrl.value.trim() || null});
-  try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav(); if (f.sPrivName || f.sWork) go(); }
+  try { C = await q(sb.from("companies").update(row).eq("id", C.id).select().single()); toast("Nastavenia uložené"); renderNav();
+    if (newFocus && confirm(`Nastaviť úlohy pre zameranie „${FOCUS[newFocus].name}“?\n\n${FOCUS[newFocus].tasks.map(([n, t]) => n + " " + t).join(", ")}\n\nOstatné úlohy sa prestanú ponúkať v appke (staré záznamy ich ponechajú, dajú sa znova zapnúť v časti Úlohy).`)) await applyFocusTasks(newFocus);
+    if (f.sPrivName || f.sWork || newFocus) go(); }
   catch (e) { toast(errMsg(e), true); }
+}
+// predvolený zoznam úloh podľa zamerania: chýbajúce pridá, existujúce premenuje, ostatné prestane ponúkať (nemaže – staré záznamy majú číslo)
+async function applyFocusTasks(focus) {
+  const list = FOCUS[focus].tasks, nums = new Set(list.map(x => x[0]));
+  await q(sb.from("tasks").upsert(list.map(([num, name]) => ({company_id: C.id, num, name, active: true})), {onConflict: "company_id,num"}));
+  for (const t of T.filter(t => !nums.has(t.num) && t.active)) await q(sb.from("tasks").update({active: false}).eq("company_id", C.id).eq("num", t.num));
+  T = await q(sb.from("tasks").select("*").eq("company_id", C.id).order("num"));
+  toast("Úlohy nastavené");
 }
 
 /* =====================================================================
@@ -1409,7 +1566,12 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#modalR
    UDALOSTI
    ===================================================================== */
 function navTo(h) { if (location.hash === h) go(); else location.hash = h; }
-document.addEventListener("input", ev => { if (ev.target.id === "adAmount") advInfo(); });
+document.addEventListener("input", ev => {
+  if (ev.target.id === "adAmount") advInfo();
+  // zaradenie zo zoznamu → navrhne predvolenú úlohu (ak ešte nie je vybraná)
+  if (ev.target.id === "wRole") { const n = (FOCUS[C.focus]?.roles || {})[ev.target.value.trim()], sel = $("#wTask");
+    if (n != null && sel && sel.value === "" && T.some(t => t.num === n && t.active)) sel.value = String(n); }
+});
 document.addEventListener("click", async ev => {
   const el = ev.target.closest("[data-act]"); if (!el) return;
   const a = el.dataset.act, id = el.dataset.id;
@@ -1433,6 +1595,9 @@ document.addEventListener("click", async ev => {
       case "rep-tab": repTab = el.dataset.t; go(); break;
       case "xlsx": await exportXlsx(); break;
       case "pdf": window.print(); break;
+      case "wm-pdf": printWorkerMonth(); break;
+      case "wm-xlsx": await exportWorkerMonth(); break;
+      case "wreport": closeModal(); repTab = "worker"; repWorker = id; navTo("#vykazy"); break;
       case "qr-print": printQr(el.dataset.id).catch(() => toast("QR kódy sa nepodarilo pripraviť", true)); break;
       case "worker": openWorker(id); break;
       case "worker-new": openWorker(null); break;
@@ -1530,6 +1695,8 @@ document.addEventListener("change", async ev => {
   else if (t.id === "fProject") { flt.project = t.value; go(); }
   else if (t.id === "fEdited") { flt.edited = t.checked; go(); }
   else if (t.id === "fInactive") { showInactive = t.checked; go(); }
+  else if (t.id === "fRepWorker") { repWorker = t.value; go(); }
+  else if (t.id === "fRepMoney") { repMoney = t.checked; go(); }
   else if (t.id === "fCashWorker") { cashFlt.worker = t.value; go(); }
   else if (t.id === "adWorker" || t.id === "adDate") advInfo();
   else if (t.id === "sWork") { const g = $("#sGps"); g.disabled = t.value === "office"; if (g.disabled) g.checked = false; }
